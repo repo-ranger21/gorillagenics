@@ -3,6 +3,7 @@ import HeroSection from "@/components/hero-section";
 import BioBoostCard from "@/components/bio-boost-card";
 import PlayerPickCard from "@/components/player-pick-card";
 import JuiceWatchAlerts from "@/components/juice-watch-alerts";
+import PerformanceHeatmap from "@/components/performance-heatmap";
 import { bioMetrics } from "@/data/mock-data";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -58,6 +59,9 @@ export default function Landing() {
               </a>
               <a href="#picks" className="text-muted-foreground hover:text-foreground transition-colors">
                 Picks
+              </a>
+              <a href="#heatmap" className="text-muted-foreground hover:text-foreground transition-colors">
+                Heatmap
               </a>
               <a href="#alerts" className="text-muted-foreground hover:text-foreground transition-colors">
                 Alerts
@@ -267,6 +271,34 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* Performance Heatmap Section */}
+      <section id="heatmap" className="py-20 bg-gradient-to-br from-primary/5 to-background">
+        <div className="container mx-auto px-6">
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+            className="text-center mb-16"
+          >
+            <h2 className="text-4xl md:text-5xl font-bold mb-6 text-foreground">
+              🔥 Performance Heatmap
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+              Visualize player performance metrics in real-time. Interactive grid shows BioBoost data across all metrics.
+            </p>
+          </motion.div>
+
+          {playersLoading ? (
+            <div className="text-center py-8">
+              <div className="animate-pulse text-muted-foreground">Loading heatmap data...</div>
+            </div>
+          ) : (
+            <PerformanceHeatmap players={players} />
+          )}
+        </div>
+      </section>
+
       {/* Juice Watch Alerts Section */}
       <section id="alerts" className="py-20 bg-background">
         <div className="container mx-auto px-6">
@@ -278,7 +310,7 @@ export default function Landing() {
             className="text-center mb-16"
           >
             <h2 className="text-4xl md:text-5xl font-bold mb-6 text-foreground">
-              Juice Watch Alerts
+              🚨 Juice Watch Alerts
             </h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
               Get notified when a player's BioBoost spikes. Our gorilla goes bananas when the metrics align.
