@@ -11,8 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { Menu, Twitter, Github } from "lucide-react";
-import { useState } from "react";
+import { Twitter, Github } from "lucide-react";
 
 const scrollToSection = (sectionId: string) => {
   const element = document.getElementById(sectionId);
@@ -22,7 +21,6 @@ const scrollToSection = (sectionId: string) => {
 };
 
 export default function Landing() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Fetch live NFL player data
   const { data: players = [], isLoading: playersLoading } = useQuery<any[]>({
@@ -40,99 +38,6 @@ export default function Landing() {
 
   return (
     <div className="bg-background text-foreground overflow-x-hidden">
-      {/* Header */}
-      <header className="relative z-50 bg-background/90 backdrop-blur-sm border-b border-border">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-primary-foreground font-bold text-lg">
-                🦍
-              </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-destructive font-bold text-lg">OVER</span>
-                <span className="text-accent font-bold text-lg">UNDER</span>
-              </div>
-            </div>
-            
-            <nav className="hidden md:flex items-center space-x-8">
-              <a href="#dashboard" className="text-muted-foreground hover:text-foreground transition-colors">
-                How It Works
-              </a>
-              <a href="#picks" className="text-muted-foreground hover:text-foreground transition-colors">
-                Picks
-              </a>
-              <a href="#recommendations" className="text-muted-foreground hover:text-foreground transition-colors">
-                Personal
-              </a>
-              <a href="#heatmap" className="text-muted-foreground hover:text-foreground transition-colors">
-                Heatmap
-              </a>
-              <a href="#alerts" className="text-muted-foreground hover:text-foreground transition-colors">
-                Alerts
-              </a>
-              <a href="/wizard" className="text-muted-foreground hover:text-foreground transition-colors">
-                Wizard
-              </a>
-              <a href="/notifications" className="text-muted-foreground hover:text-foreground transition-colors">
-                Notifications
-              </a>
-              <Button 
-                data-testid="button-enter-jungle"
-                className="bg-primary text-primary-foreground hover:bg-primary/90"
-                onClick={() => window.location.href = '/dashboard'}
-              >
-                🦍 Enter the Jungle
-              </Button>
-            </nav>
-            
-            <Button
-              variant="ghost"
-              size="sm"
-              className="md:hidden"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              data-testid="button-mobile-menu"
-            >
-              <Menu className="h-5 w-5" />
-            </Button>
-          </div>
-          
-          {/* Mobile Menu */}
-          {mobileMenuOpen && (
-            <motion.div 
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="md:hidden bg-background border-t border-border py-4 space-y-4"
-            >
-              <a href="#dashboard" className="block text-muted-foreground hover:text-foreground transition-colors">
-                How It Works
-              </a>
-              <a href="#picks" className="block text-muted-foreground hover:text-foreground transition-colors">
-                Picks
-              </a>
-              <a href="#alerts" className="block text-muted-foreground hover:text-foreground transition-colors">
-                Alerts
-              </a>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button 
-                  className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
-                  onClick={() => window.location.href = '/dashboard'}
-                >
-                  🦍 Enter the Jungle
-                </Button>
-                <Button 
-                  className="flex-1 bg-accent text-accent-foreground hover:bg-accent/90"
-                  onClick={() => window.location.href = '/wizard'}
-                  data-testid="try-wizard-button"
-                >
-                  🧙‍♂️ Try Wizard
-                </Button>
-              </div>
-            </motion.div>
-          )}
-        </div>
-      </header>
-
       {/* Hero Section */}
       <HeroSection />
 

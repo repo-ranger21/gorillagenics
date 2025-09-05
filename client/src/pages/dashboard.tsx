@@ -8,7 +8,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import OddsTicker from "@/components/odds-ticker";
 import BetCard from "@/components/bet-card";
 import LiveAlerts from "@/components/live-alerts";
-import NewsletterCTA from "@/components/newsletter-cta";
 import LoadingScreen from "@/components/loading-screen";
 import { TrendingUp, TrendingDown, ArrowLeft } from "lucide-react";
 
@@ -67,43 +66,30 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0B3D2E] via-[#0F4A36] to-[#134A3A]">
-      {/* Header */}
-      <header className="border-b border-primary/20 bg-background/10 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-4">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => window.history.back()}
-                className="border-primary/20 hover:bg-primary/10"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back
-              </Button>
-              <div>
-                <h1 className="text-2xl font-bold text-yellow-400">
-                  GUERILLAGENICS — Over/Unders
-                </h1>
-                <p className="text-primary text-sm">Live Jungle Intelligence</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="border-green-500 text-green-400">
-                <div className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse" />
-                LIVE
-              </Badge>
-              <Badge variant="outline" className="border-yellow-500 text-yellow-400">
-                🦍 {lines?.length || 0} Markets
-              </Badge>
-            </div>
+      {/* Dashboard Header */}
+      <div className="container mx-auto px-6 py-4">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h1 className="text-2xl font-bold text-yellow-400">
+              GUERILLAGENICS — Over/Unders
+            </h1>
+            <p className="text-primary text-sm">Live Jungle Intelligence</p>
           </div>
           
-          {/* Odds Ticker */}
-          <OddsTicker lines={lines || []} />
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="border-green-500 text-green-400">
+              <div className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse" />
+              LIVE
+            </Badge>
+            <Badge variant="outline" className="border-yellow-500 text-yellow-400">
+              🦍 {lines?.length || 0} Markets
+            </Badge>
+          </div>
         </div>
-      </header>
+        
+        {/* Odds Ticker */}
+        <OddsTicker lines={lines || []} />
+      </div>
 
       {/* Main Content */}
       <main className="container mx-auto px-6 py-8">
