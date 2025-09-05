@@ -52,6 +52,12 @@ export function Navigation() {
       description: "GuerillaGenics weekly NFL picks"
     },
     {
+      name: "Playground",
+      href: "/playground",
+      icon: Zap,
+      description: "Interactive prediction playground"
+    },
+    {
       name: "Live Dashboard", 
       href: "/dashboard",
       icon: TrendingUp,

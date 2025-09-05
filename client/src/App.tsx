@@ -13,6 +13,7 @@ import Strategy from "@/pages/strategy";
 import RiskHeatmapPage from "@/pages/risk-heatmap";
 import ChallengesPage from "@/pages/challenges";
 import WeeklyPicks from "@/pages/WeeklyPicks";
+import PredictionPlayground from "@/pages/prediction-playground";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -29,6 +30,7 @@ function Router() {
         <Route path="/risk-heatmap" component={RiskHeatmapPage} />
         <Route path="/challenges" component={ChallengesPage} />
         <Route path="/weekly-picks" component={WeeklyPicks} />
+        <Route path="/playground" component={PredictionPlayground} />
         <Route component={NotFound} />
       </Switch>
     </>
