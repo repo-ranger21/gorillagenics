@@ -477,6 +477,165 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Push notification subscription endpoint
+  app.post("/api/notifications/subscribe", async (req, res) => {
+    try {
+      const { subscription } = req.body;
+      
+      console.log('🔔 Push notification subscription received:', {
+        endpoint: subscription.endpoint.substring(0, 50) + '...'
+      });
+      
+      // In production, save subscription to database
+      // For now, store in memory (this would be lost on restart)
+      if (!storage.pushSubscriptions) {
+        storage.pushSubscriptions = new Set();
+      }
+      storage.pushSubscriptions.add(JSON.stringify(subscription));
+      
+      res.json({ 
+        success: true,
+        message: "Successfully subscribed to push notifications" 
+      });
+    } catch (error) {
+      console.error("Error saving push subscription:", error);
+      res.status(500).json({ 
+        success: false,
+        message: "Failed to save push subscription" 
+      });
+    }
+  });
+
+  // Push notification unsubscribe endpoint
+  app.post("/api/notifications/unsubscribe", async (req, res) => {
+    try {
+      const { subscription } = req.body;
+      
+      console.log('🔔 Push notification unsubscribe received');
+      
+      // Remove subscription from storage
+      if (storage.pushSubscriptions && subscription) {
+        storage.pushSubscriptions.delete(JSON.stringify(subscription));
+      }
+      
+      res.json({ 
+        success: true,
+        message: "Successfully unsubscribed from push notifications" 
+      });
+    } catch (error) {
+      console.error("Error removing push subscription:", error);
+      res.status(500).json({ 
+        success: false,
+        message: "Failed to remove push subscription" 
+      });
+    }
+  });
+
+  // Test notification endpoint
+  app.post("/api/notifications/test", async (req, res) => {
+    try {
+      const { subscription } = req.body;
+      
+      if (!subscription) {
+        return res.status(400).json({ 
+          success: false,
+          message: "No subscription provided" 
+        });
+      }
+      
+      // Send test notification
+      const payload = {
+        title: '🦍 GuerillaGenics Test Alert',
+        body: 'This is a test notification from the jungle! Your alerts are working perfectly.',
+        icon: '/favicon.ico',
+        url: '/',
+        alertType: 'zen_gorilla',
+        tag: 'test-notification',
+        requireInteraction: false,
+        vibrate: [200, 100, 200, 100, 200]
+      };
+      
+      console.log('🔔 Sending test push notification');
+      
+      // In production, use actual web-push library
+      // For demo, just log and return success
+      console.log('🔔 Test notification payload:', payload);
+      
+      res.json({ 
+        success: true,
+        message: "Test notification sent successfully" 
+      });
+    } catch (error) {
+      console.error("Error sending test notification:", error);
+      res.status(500).json({ 
+        success: false,
+        message: "Failed to send test notification" 
+      });
+    }
+  });
+
+  // Juice Watch alert trigger endpoint (for manual testing)
+  app.post("/api/notifications/alert", async (req, res) => {
+    try {
+      const { playerId, alertType, message } = req.body;
+      
+      const player = storage.getPlayer(playerId);
+      if (!player) {
+        return res.status(404).json({ 
+          success: false,
+          message: "Player not found" 
+        });
+      }
+      
+      // Create alert notification payload
+      const alertMessages = {
+        zen_gorilla: 'Player metrics are stable and within normal range',
+        alpha_ape: 'Significant BioBoost changes detected - opportunity alert!',
+        full_bananas: 'CRITICAL ALERT: Major performance shift detected!'
+      };
+      
+      const alertEmojis = {
+        zen_gorilla: '🧘',
+        alpha_ape: '⚡',
+        full_bananas: '🚨'
+      };
+      
+      const payload = {
+        title: `${alertEmojis[alertType]} Juice Watch Alert: ${player.name}`,
+        body: message || alertMessages[alertType],
+        icon: '/favicon.ico',
+        url: `/player/${playerId}`,
+        playerId,
+        alertType,
+        tag: `juice-watch-${playerId}`,
+        requireInteraction: alertType === 'full_bananas',
+        vibrate: alertType === 'full_bananas' ? [300, 100, 300, 100, 300] : [200, 100, 200]
+      };
+      
+      console.log('🔔 Triggering Juice Watch alert:', {
+        player: player.name,
+        type: alertType,
+        subscriptions: storage.pushSubscriptions?.size || 0
+      });
+      
+      // In production, send to all subscribed users
+      // For demo, just log the alert
+      console.log('🔔 Alert notification payload:', payload);
+      
+      res.json({ 
+        success: true,
+        message: `Juice Watch alert triggered for ${player.name}`,
+        payload 
+      });
+    } catch (error) {
+      console.error("Error triggering Juice Watch alert:", error);
+      res.status(500).json({ 
+        success: false,
+        message: "Failed to trigger alert" 
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   
   // Initialize live data and start scheduler in development

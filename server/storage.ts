@@ -30,12 +30,14 @@ export class MemStorage implements IStorage {
   private players: Player[];
   private alerts: Alert[];
   private bioMetrics: BioMetric[];
+  public pushSubscriptions: Set<string>;
 
   constructor() {
     this.users = new Map();
     this.players = [...players];
     this.alerts = [...alerts];
     this.bioMetrics = [...bioMetrics];
+    this.pushSubscriptions = new Set();
   }
 
   async getUser(id: string): Promise<User | undefined> {

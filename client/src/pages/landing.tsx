@@ -73,6 +73,9 @@ export default function Landing() {
               <a href="/wizard" className="text-muted-foreground hover:text-foreground transition-colors">
                 Wizard
               </a>
+              <a href="/notifications" className="text-muted-foreground hover:text-foreground transition-colors">
+                Notifications
+              </a>
               <Button 
                 data-testid="button-enter-jungle"
                 className="bg-primary text-primary-foreground hover:bg-primary/90"
