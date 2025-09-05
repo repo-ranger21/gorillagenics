@@ -1,0 +1,187 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Jungle-themed color palette */
+  --background: hsl(140, 20%, 8%);
+  --foreground: hsl(0, 0%, 95%);
+  --card: hsl(140, 15%, 12%);
+  --card-foreground: hsl(0, 0%, 95%);
+  --popover: hsl(140, 15%, 12%);
+  --popover-foreground: hsl(0, 0%, 95%);
+  --primary: hsl(45, 95%, 64%);
+  --primary-foreground: hsl(140, 20%, 8%);
+  --secondary: hsl(140, 30%, 15%);
+  --secondary-foreground: hsl(0, 0%, 95%);
+  --muted: hsl(140, 10%, 25%);
+  --muted-foreground: hsl(0, 0%, 65%);
+  --accent: hsl(150, 50%, 50%);
+  --accent-foreground: hsl(140, 20%, 8%);
+  --destructive: hsl(0, 70%, 50%);
+  --destructive-foreground: hsl(0, 0%, 95%);
+  --border: hsl(140, 15%, 20%);
+  --input: hsl(140, 15%, 15%);
+  --ring: hsl(45, 95%, 64%);
+  --chart-1: hsl(45, 95%, 64%);
+  --chart-2: hsl(150, 50%, 50%);
+  --chart-3: hsl(0, 70%, 50%);
+  --chart-4: hsl(210, 70%, 50%);
+  --chart-5: hsl(280, 70%, 50%);
+  --sidebar: hsl(140, 15%, 12%);
+  --sidebar-foreground: hsl(0, 0%, 95%);
+  --sidebar-primary: hsl(45, 95%, 64%);
+  --sidebar-primary-foreground: hsl(140, 20%, 8%);
+  --sidebar-accent: hsl(140, 30%, 15%);
+  --sidebar-accent-foreground: hsl(0, 0%, 95%);
+  --sidebar-border: hsl(140, 15%, 20%);
+  --sidebar-ring: hsl(45, 95%, 64%);
+  --font-sans: 'Inter', sans-serif;
+  --font-serif: Georgia, serif;
+  --font-mono: Menlo, monospace;
+  --radius: 12px;
+  
+  /* Custom colors for biometric indicators */
+  --testosterone: hsl(0, 70%, 50%);
+  --sleep: hsl(45, 95%, 64%);
+  --cortisol: hsl(25, 80%, 55%);
+  --hydration: hsl(200, 80%, 60%);
+  --recovery: hsl(150, 50%, 50%);
+  
+  /* Shadows */
+  --shadow-2xs: 0px 1px 2px 0px hsl(140, 20%, 8%, 0.05);
+  --shadow-xs: 0px 1px 2px 0px hsl(140, 20%, 8%, 0.1);
+  --shadow-sm: 0px 1px 2px 0px hsl(140, 20%, 8%, 0.1), 0px 1px 3px 0px hsl(140, 20%, 8%, 0.1);
+  --shadow: 0px 1px 3px 0px hsl(140, 20%, 8%, 0.1), 0px 1px 2px 0px hsl(140, 20%, 8%, 0.06);
+  --shadow-md: 0px 4px 6px -1px hsl(140, 20%, 8%, 0.1), 0px 2px 4px -1px hsl(140, 20%, 8%, 0.06);
+  --shadow-lg: 0px 10px 15px -3px hsl(140, 20%, 8%, 0.1), 0px 4px 6px -2px hsl(140, 20%, 8%, 0.05);
+  --shadow-xl: 0px 20px 25px -5px hsl(140, 20%, 8%, 0.1), 0px 10px 10px -5px hsl(140, 20%, 8%, 0.04);
+  --shadow-2xl: 0px 25px 50px -12px hsl(140, 20%, 8%, 0.25);
+}
+
+.dark {
+  --background: hsl(140, 20%, 4%);
+  --foreground: hsl(0, 0%, 98%);
+  --card: hsl(140, 15%, 8%);
+  --card-foreground: hsl(0, 0%, 98%);
+  --popover: hsl(140, 15%, 8%);
+  --popover-foreground: hsl(0, 0%, 98%);
+  --primary: hsl(45, 95%, 64%);
+  --primary-foreground: hsl(140, 20%, 4%);
+  --secondary: hsl(140, 30%, 10%);
+  --secondary-foreground: hsl(0, 0%, 98%);
+  --muted: hsl(140, 10%, 15%);
+  --muted-foreground: hsl(0, 0%, 60%);
+  --accent: hsl(150, 50%, 45%);
+  --accent-foreground: hsl(140, 20%, 4%);
+  --destructive: hsl(0, 70%, 55%);
+  --destructive-foreground: hsl(0, 0%, 98%);
+  --border: hsl(140, 15%, 15%);
+  --input: hsl(140, 15%, 10%);
+  --ring: hsl(45, 95%, 64%);
+}
+
+/* Custom gradient backgrounds */
+.gradient-jungle {
+  background: linear-gradient(135deg, hsl(140, 30%, 8%) 0%, hsl(140, 20%, 12%) 50%, hsl(45, 20%, 8%) 100%);
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, hsl(45, 95%, 64%) 0%, hsl(150, 50%, 50%) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Custom animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes bounceGentle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 20px hsl(45, 95%, 64%, 0.3); }
+  50% { box-shadow: 0 0 30px hsl(45, 95%, 64%, 0.6); }
+}
+
+@keyframes gorillaShake {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-5deg); }
+  75% { transform: rotate(5deg); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.6s ease-out;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.8s ease-out;
+}
+
+.animate-bounce-gentle {
+  animation: bounceGentle 2s infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 2s infinite;
+}
+
+.animate-gorilla-shake {
+  animation: gorillaShake 0.5s ease-in-out;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+    font-family: var(--font-sans);
+  }
+}
+
+@layer utilities {
+  .text-testosterone {
+    color: var(--testosterone);
+  }
+  .text-sleep {
+    color: var(--sleep);
+  }
+  .text-cortisol {
+    color: var(--cortisol);
+  }
+  .text-hydration {
+    color: var(--hydration);
+  }
+  .text-recovery {
+    color: var(--recovery);
+  }
+  
+  .bg-testosterone {
+    background-color: var(--testosterone);
+  }
+  .bg-sleep {
+    background-color: var(--sleep);
+  }
+  .bg-cortisol {
+    background-color: var(--cortisol);
+  }
+  .bg-hydration {
+    background-color: var(--hydration);
+  }
+  .bg-recovery {
+    background-color: var(--recovery);
+  }
+}
