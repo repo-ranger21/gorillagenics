@@ -155,7 +155,7 @@ export default function Landing() {
             ) : (
               (players as any[]).map((player: any, index: number) => (
                 <motion.div
-                  key={player.id || `player-${index}`}
+                  key={`${player.id}-${index}-${Date.now()}`}
                   initial={{ opacity: 0, y: 30 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
