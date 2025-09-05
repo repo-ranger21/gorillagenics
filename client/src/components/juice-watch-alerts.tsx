@@ -57,7 +57,8 @@ export default function JuiceWatchAlerts({ alerts }: JuiceWatchAlertsProps) {
     }
   };
 
-  const formatTimeAgo = (timestamp: Date) => {
+  const formatTimeAgo = (timestamp: Date | null) => {
+    if (!timestamp) return "Just now";
     const now = new Date();
     const diff = now.getTime() - timestamp.getTime();
     const minutes = Math.floor(diff / 60000);
@@ -150,7 +151,7 @@ export default function JuiceWatchAlerts({ alerts }: JuiceWatchAlertsProps) {
                     <span className="px-2 py-1 bg-primary/20 text-primary text-xs font-semibold rounded">BETA</span>
                     <Checkbox 
                       checked={satiricalMode}
-                      onCheckedChange={setSatiricalMode}
+                      onCheckedChange={(checked) => setSatiricalMode(checked === true)}
                       data-testid="checkbox-satirical-mode"
                     />
                   </div>
@@ -160,7 +161,7 @@ export default function JuiceWatchAlerts({ alerts }: JuiceWatchAlertsProps) {
                   <span className="text-muted-foreground">Gorilla Sound Effects</span>
                   <Checkbox 
                     checked={soundEffects}
-                    onCheckedChange={setSoundEffects}
+                    onCheckedChange={(checked) => setSoundEffects(checked === true)}
                     data-testid="checkbox-sound-effects"
                   />
                 </div>
@@ -169,7 +170,7 @@ export default function JuiceWatchAlerts({ alerts }: JuiceWatchAlertsProps) {
                   <span className="text-muted-foreground">Push Notifications</span>
                   <Checkbox 
                     checked={pushNotifications}
-                    onCheckedChange={setPushNotifications}
+                    onCheckedChange={(checked) => setPushNotifications(checked === true)}
                     data-testid="checkbox-push-notifications"
                   />
                 </div>
@@ -178,7 +179,7 @@ export default function JuiceWatchAlerts({ alerts }: JuiceWatchAlertsProps) {
                   <span className="text-muted-foreground">Weekly Digest</span>
                   <Checkbox 
                     checked={weeklyDigest}
-                    onCheckedChange={setWeeklyDigest}
+                    onCheckedChange={(checked) => setWeeklyDigest(checked === true)}
                     data-testid="checkbox-weekly-digest"
                   />
                 </div>
@@ -232,7 +233,7 @@ export default function JuiceWatchAlerts({ alerts }: JuiceWatchAlertsProps) {
                       {alert.playerName}
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      {alert.team} • {alert.timestamp ? formatTimeAgo(alert.timestamp) : "Just now"}
+                      {alert.team} • {formatTimeAgo(alert.timestamp)}
                     </div>
                   </div>
                   <div className="mb-2">

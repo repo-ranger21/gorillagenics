@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import gorillaImage from "@assets/Untitled_1757073459800.png";
 
 export default function HeroSection() {
   return (
@@ -16,11 +17,26 @@ export default function HeroSection() {
           transition={{ duration: 1, ease: "easeOut" }}
           className="mb-8"
         >
+          {/* OVER/UNDER Ticker */}
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 1.2, delay: 0.1 }}
+            className="flex items-center justify-center gap-8 mb-8"
+          >
+            <div className="bg-destructive text-white px-6 py-3 rounded-full font-bold text-xl transform -rotate-12">
+              OVER
+            </div>
+            <div className="bg-accent text-white px-6 py-3 rounded-full font-bold text-xl transform rotate-12">
+              UNDER
+            </div>
+          </motion.div>
+          
           <motion.h1 
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 1.2, delay: 0.2 }}
-            className="text-6xl md:text-8xl font-bold mb-4"
+            className="text-5xl md:text-7xl font-bold mb-4"
           >
             <span className="block text-gradient">TESTTICKER</span>
           </motion.h1>
@@ -29,19 +45,10 @@ export default function HeroSection() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, delay: 0.5 }}
-            className="text-4xl md:text-6xl font-bold text-foreground mb-6"
+            className="text-3xl md:text-5xl font-bold text-foreground mb-6"
           >
             Bet Smarter. Go Primal.
           </motion.h2>
-          
-          <motion.p 
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, delay: 0.7 }}
-            className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto mb-8"
-          >
-            Our gorilla-grade algorithms track the biological signals that matter most. Each metric feeds our primal prediction engine.
-          </motion.p>
         </motion.div>
         
         <motion.div 
@@ -66,7 +73,7 @@ export default function HeroSection() {
         </motion.div>
       </div>
 
-      {/* Floating gorilla mascot */}
+      {/* Gorilla mascot image */}
       <motion.div 
         initial={{ opacity: 0, scale: 0 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -76,9 +83,13 @@ export default function HeroSection() {
         <motion.div 
           animate={{ y: [-10, 10, -10] }}
           transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-          className="w-20 h-20 bg-primary rounded-full flex items-center justify-center text-4xl hover:animate-gorilla-shake cursor-pointer"
+          className="hover:animate-gorilla-shake cursor-pointer"
         >
-          🦍
+          <img 
+            src={gorillaImage} 
+            alt="GuerillaGenics Mascot" 
+            className="w-24 h-24 object-contain"
+          />
         </motion.div>
       </motion.div>
     </section>
