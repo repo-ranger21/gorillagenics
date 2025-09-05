@@ -1,0 +1,253 @@
+Build a production‑ready “Weekly Picks” feature for GuerillaGenics (https://guerillagenics.app/) that:
+- Only displays live and accurate NFL Week 1 matchups and betting lines.
+- Presents GuerillaGenics predictions for each game.
+- Highlights featured NFL offensive players only (no defensive players anywhere).
+- Integrates with “Enter the Jungle” and the Over/Under dashboard.
+- Is mobile‑first, branded, and resilient (loading states, fallbacks, caching).
+
+---
+
+🎯 Core deliverables
+
+1) Navigation & entry
+- Add “Weekly Picks” to primary navigation and as a visible CTA on the landing page.
+- Route: /weekly-picks
+- From the landing page, “Enter the Jungle” continues to /dashboard. Weekly Picks is a sibling route under the same app shell.
+
+2) Live data requirements (no hardcoding of matchups)
+- Week schedule & status:
+  - Implement a provider-agnostic schedule fetcher with adapters:
+    - Primary: ESPN NFL scoreboard JSON for current week (public, fast).
+    - Secondary fallback (switchable by env): TheSportsDB or MySportsFeeds (requires key).
+  - Determine the current week dynamically and support manual override via a week selector.
+  - Never ship static lists for matchups; must come from API at runtime (with cache and fallback).
+- Odds & totals:
+  - Use a live odds API:
+    - Primary: The Odds API (the-odds-api.com) for moneyline, spread, and totals (O/U).
+    - Fallback: Anybook provider adapter compatible with the same interface.
+  - Normalize odds to { spread, total, moneylineHome, moneylineAway, lastUpdated }.
+- Featured offensive players (no defensive players):
+  - Build an Offense Spotlight service that selects 2–4 top/popular offensive players per team:
+    - Positions allowed: QB, RB, WR, TE only.
+    - Ranking blend:
+      - Last-season production (yards, TDs, target share/carry share).
+      - Current popularity (ADP or player trend endpoints).
+      - Team star designation if available.
+  - Data sources (use adapters; pick whichever is accessible in your environment):
+    - Sleeper API (free, robust player meta + positions).
+    - SportsData.io (if key provided).
+    - Optional: team-level curated cache as fallback (offense only).
+  - Enforce position filter strictly; exclude any player with positions including “LB, CB, S, DL, EDGE, DE, DT, DB, K, P, LS”.
+  - If a team’s top offensive player is inactive, replace with the next eligible offensive player.
+- Predictions (GuerillaGenics methods):
+  - Compute a pick for each game (home/away winner) and an O/U lean using:
+    - Market-informed baseline: spread and total.
+    - Offense Spotlight boost: weighted stars present/active (QB > WR > RB > TE).
+    - Line movement signal (last 24–48h).
+    - Light weather impact on totals only (wind > 18mph and heavy precip reduce “Over” lean).
+  - Output:
+    - Winner prediction (home or away).
+    - O/U recommendation (Over or Under) with confidence band (Low/Moderate/High).
+    - Commentary string in GuerillaGenics voice (1–2 sentences, mascot‑flavored).
+
+3) UX/UI
+- Page: /weekly-picks
+  - Header: “GuerillaGenics — Weekly Picks” + “Bet Smarter. Go Primal.”
+  - Week selector: left/right chevrons + dropdown (Week 1 default).
+  - Filters: All | Thursday | Friday | Sunday Early | Sunday Late | SNF | MNF.
+  - Matchup list (chronological). Each card shows:
+    - Date/time (ET), away @ home, network (if available).
+    - Live odds: spread, total, moneylines; last updated timestamp.
+    - GuerillaGenics Pick: Winner + O/U recommendation with confidence and brief commentary.
+    - Featured offensive players (offense only, 2–4 per team with role tags: QB1, WR1, RB1, TE1).
+  - Live odds ticker in the header (moving line Δ since load).
+  - Sidebar: Newsletter CTA ($10/month Substack), responsible betting disclaimer.
+- Branded states:
+  - Loading: mascot bounce animation + “🦍 Peeling the data bananas…”
+  - Fallback: “Data is swinging in late — check back soon!” and show last‑known cached week if present.
+- Interaction:
+  - Progressive rendering: render shell immediately, hydrate rows as data arrives.
+  - Skeleton loaders for odds and players (Tailwind animate-pulse).
+  - Refresh control to re‑fetch odds and schedule.
+
+4) Architecture & stack
+- Frontend: React, TailwindCSS, Framer Motion, React Router.
+- Backend: Node.js, Express, WebSocket for live odds push (if supported by provider; otherwise poll).
+- State: Zustand or Context + SWR/React Query (caching, revalidation).
+- Env-configurable providers with adapters:
+  - ScheduleProvider (espn | tsdb | msf).
+  - OddsProvider (theoddsapi | fallback).
+  - PlayersProvider (sleeper | sportsdata | fallback).
+- Caching:
+  - Frontend: localStorage for last‑known schedule, odds snapshot, and featured players by team.
+  - Backend: in-memory cache with TTLs (e.g., 30–60s for odds, 10–15 min for schedule).
+- Timezone:
+  - Normalize all times to ET for display. Internally store ISO and source timezone.
+
+5) Data contracts
+- ScheduleGame:
+  { id, week, startTimeISO, startEt, status, awayTeam: { id, name, abbr }, homeTeam: { id, name, abbr }, tv? }
+- OddsSnapshot:
+  { gameId, spread: { home: number, away: number }, total: number, moneylineHome: number, moneylineAway: number, lastUpdatedISO, lineMove: { spreadΔ: number, totalΔ: number } }
+- FeaturedOffense:
+  { teamId, players: [{ id, name, position, roleTag, headshotUrl? }] } // positions restricted to QB/RB/WR/TE
+- GGPick:
+  { gameId, winner: "home"|"away", ouLean: "Over"|"Under", confidence: 0–100, band: "Low"|"Moderate"|"High", commentary: string }
+
+6) Prediction logic (transparent & testable)
+- Winner score:
+  base = sign(spread) // market baseline toward favorite
+  qbWeight = +2 if team has top-8 QB by prior-year EPA/play or ADP, else +1 if top-16
+  starSkillWeight = +1 per WR1/RB1 elite tier (cap +2)
+  lineMoveWeight = +1 if moved toward team ≥ 0.5 in last 24–48h, -1 if opposite
+  homeField = +1
+  winner = team with higher sum
+- O/U lean:
+  start from market total
+  adjust -2 for sustained wind > 18mph or heavy precip probability > 60%
+  adjust +1 if both teams’ offensive stars >= 3 total
+  lean = Over if adjustedTotal >= marketTotal + 0.5 else Under
+- Confidence:
+  55–64 → Low, 65–79 → Moderate, 80+ → High
+- Never surface defensive players in any calculation or UI (hard validation).
+
+7) Validation rules (must enforce)
+- Do not render a matchup if schedule API indicates “TBD” opponent — wait & skeleton.
+- Do not display any player whose position is not in { QB, RB, WR, TE }.
+- If a provider returns a defensive player or special teamer, drop and replace with next best offensive.
+- If odds are stale (>10 minutes), badge the card “Stale odds” and allow manual refresh.
+- Show “Live” badge if game is in progress; lock pick display after kickoff (read-only).
+
+---
+
+🔌 Providers & environment
+
+- Env vars (frontend and backend where needed):
+  VITE_API_BASE=https://your-domain/api
+  VITE_WS_URL=wss://your-domain/ws
+  VITE_SUBSTACK_PUBLICATION=https://your-substack.substack.com
+  SCHEDULE_PROVIDER=espn        # espn | tsdb | msf
+  ODDS_PROVIDER=theoddsapi      # theoddsapi | fallback
+  PLAYERS_PROVIDER=sleeper      # sleeper | sportsdata | fallback
+  ODDS_API_KEY=xxxxxxxx
+  NFL_API_KEY=xxxxxxxx          # for tsdb/msf/sportsdata if used
+  NODE_ENV=production
+
+- Adapters to implement:
+  - ScheduleEspnAdapter: fetch ESPN scoreboard JSON for week; map -> ScheduleGame[]
+  - ScheduleTsdbAdapter / ScheduleMsfAdapter: same contract
+  - OddsTheOddsApiAdapter: map bookmaker -> OddsSnapshot
+  - PlayersSleeperAdapter: query players, filter by positions (QB/RB/WR/TE), rank top by previous season stats + popularity
+  - Fallback adapters: return empty arrays with warnings (UI shows fallback card)
+
+---
+
+🖼️ UI components
+
+- WeeklyPicks.jsx: page shell, filters, week selector, grid render
+- MatchupCard.jsx: all data for one game (odds, pick, players, commentary)
+- FeaturedOffense.jsx: strictly offensive positions, show role tags (QB1, WR1, RB1, TE1)
+- OddsTicker.jsx: scroll ticker with Δ arrows
+- WeekSelector.jsx: arrows + dropdown (Week 1 default; auto-detect current week)
+- LoadingScreen.jsx: mascot animation, brand copy
+- FallbackContent.jsx: cache surface + Substack CTA
+- NewsletterCTA.jsx: Substack link module
+- Disclaimer.jsx: responsible betting note
+
+Styling:
+- Palette: jungle green #0B3D2E, banana yellow #FFD447, action red #C53030, vine green #16A34A
+- Animations: Framer Motion for load-in; subtle pulse on odds updates; “juice” flash on line moves
+
+---
+
+🧠 Backend endpoints
+
+GET /api/health → { schedule: "ok"|"fail", odds: "ok"|"fail", players: "ok"|"fail" }
+GET /api/week?number=1 → ScheduleGame[]
+GET /api/odds?week=1 → OddsSnapshot[]
+GET /api/players/offense?teamId=XXX → FeaturedOffense
+GET /api/picks?week=1 → GGPick[]  (computed server-side, cache 60s)
+WS /ws → optional push for odds updates { type: "odds:update", payload: OddsSnapshot[] }
+
+Caching:
+- Memory TTLs: odds 30–60s, schedule 10–15m, players 6h
+- Add ETag/Last-Modified on odds/schedule endpoints
+
+---
+
+🧪 Acceptance criteria (must pass)
+
+- Only live, API-fetched Week 1 matchups are displayed; no hardcoded schedule.
+- Each matchup shows real spread, total, and moneylines with lastUpdated time.
+- Each matchup includes featured offensive players only (QB/RB/WR/TE); zero defensive/special teams.
+- GuerillaGenics winner and O/U lean computed and displayed with confidence band and commentary.
+- Filters and week selector work; Week 1 is default; week auto-detection works.
+- Loading state and fallback state are branded; last-known cache renders if APIs fail.
+- Odds ticker animates and reflects line movement deltas since initial load.
+- UI passes mobile audits (CLS < 0.1, quick first paint with skeletons).
+- Lighthouse performance score ≥ 85 on mobile for the /weekly-picks route.
+
+---
+
+📂 Suggested structure
+
+/src
+  /pages
+    WeeklyPicks.jsx
+  /components
+    MatchupCard.jsx
+    FeaturedOffense.jsx
+    OddsTicker.jsx
+    WeekSelector.jsx
+    LoadingScreen.jsx
+    FallbackContent.jsx
+    NewsletterCTA.jsx
+    Disclaimer.jsx
+  /state
+    useWeeklyPicksStore.js
+  /utils
+    timeEt.js
+    commentary.js
+  /adapters
+    scheduleEspn.js
+    scheduleTsdb.js
+    scheduleMsf.js
+    oddsTheOddsApi.js
+    playersSleeper.js
+    index.js        # adapter registry
+/server
+  index.js
+  routes/health.js
+  routes/week.js
+  routes/odds.js
+  routes/players.js
+  routes/picks.js
+  services/predictions.js
+  services/cache.js
+  services/providers.js
+
+---
+
+🔒 Guardrails & tests
+
+- Unit tests:
+  - Players adapter filters out any non‑offensive positions.
+  - Predictions choose “winner” consistent with spread direction ≥ 60% of time (sanity check).
+  - Odds snapshots mark “stale” if older than 10 minutes.
+- Integration tests:
+  - When primary provider fails, secondary schedule provider is used.
+  - UI shows fallback cache when all providers fail.
+- Visual tests:
+  - Skeletons render within 150ms; content hydrates incrementally.
+
+---
+
+📜 Copy guidelines (GuerillaGenics voice)
+
+- Loading: “🦍 Peeling the data bananas…”
+- Commentary examples:
+  - “Max Juice: QB1 in rhythm, WR1 mismatch on the perimeter.”
+  - “Tempo tilt + red zone usage screams points — OVER has the vine.”
+  - “Market shade drifted their way — ride the banana boat.”
+
+Ship a complete, runnable enhancement that meets all acceptance criteria and is ready to plug into guerillagenics.app. 

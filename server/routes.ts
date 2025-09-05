@@ -10,8 +10,20 @@ import { RecommendationEngine, type UserProfile } from "./services/recommendatio
 import { dataScheduler } from "./services/data-scheduler";
 import { dataIntegrationService } from "./services/data-integration";
 import { webScrapingService } from "./services/web-scrapers";
+import { ScheduleEspnAdapter } from "./adapters/scheduleEspn.js";
+import { OddsTheOddsApiAdapter } from "./adapters/oddsTheOddsApi.js";
+import { PlayersSleeperAdapter } from "./adapters/playersSleeper.js";
+import { PredictionsService } from "./services/predictions.js";
+import { CacheService } from "./services/cache.js";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Initialize live data providers for production-ready Weekly Picks
+  const cache = new CacheService();
+  const scheduleProvider = new ScheduleEspnAdapter();
+  const oddsProvider = new OddsTheOddsApiAdapter(process.env.ODDS_API_KEY);
+  const playersProvider = new PlayersSleeperAdapter();
+  const predictionsService = new PredictionsService();
+  
   // API routes for GuerillaGenics platform
 
   // Get all players with BioBoost data and live betting odds
@@ -176,37 +188,204 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Weekly Picks API endpoints
-  app.get('/api/weekly-picks/:week', async (req, res) => {
+  // Production-ready Live Data Endpoints for Weekly Picks
+  
+  // Health check for all providers
+  app.get('/api/health', async (req, res) => {
+    const health = {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      providers: { schedule: 'unknown', odds: 'unknown', players: 'unknown' }
+    };
+
     try {
-      const week = parseInt(req.params.week);
+      await scheduleProvider.getCurrentWeek();
+      health.providers.schedule = 'ok';
+    } catch { health.providers.schedule = 'fail'; }
+
+    try {
+      await oddsProvider.getGameOdds([]);
+      health.providers.odds = 'ok';
+    } catch { health.providers.odds = 'fail'; }
+
+    try {
+      await playersProvider.getFeaturedOffense('1');
+      health.providers.players = 'ok';
+    } catch { health.providers.players = 'fail'; }
+
+    const allOk = Object.values(health.providers).every(s => s === 'ok');
+    health.status = allOk ? 'ok' : 'degraded';
+    res.status(allOk ? 200 : 503).json(health);
+  });
+
+  // Current week detection with ESPN data
+  app.get('/api/current-week', async (req, res) => {
+    try {
+      const cacheKey = `current_week`;
+      let weekData = cache.get(cacheKey);
       
-      if (week === 1) {
-        // Import and serve Week 1 data
-        const { WEEK_1_SCHEDULE } = await import('./weeklyPicksData.js');
-        res.json(WEEK_1_SCHEDULE);
-      } else {
-        // For future weeks, return empty array
-        res.json([]);
+      if (!weekData) {
+        weekData = await scheduleProvider.getCurrentWeek();
+        cache.set(cacheKey, weekData, 'schedule');
       }
+      
+      res.json(weekData);
     } catch (error) {
-      console.error('Error fetching weekly picks:', error);
-      res.status(500).json({ message: 'Failed to fetch weekly picks' });
+      console.error('Current week fetch failed:', error);
+      // Fallback calculation
+      const seasonStart = new Date('2025-09-04');
+      const now = new Date();
+      const diffDays = Math.ceil((now - seasonStart) / (1000 * 60 * 60 * 24));
+      const currentWeek = Math.min(18, Math.max(1, Math.floor(diffDays / 7) + 1));
+      
+      res.json({ 
+        currentWeek,
+        seasonStart: seasonStart.toISOString(),
+        calculatedAt: now.toISOString(),
+        fallback: true
+      });
     }
   });
 
-  app.get('/api/current-week', (req, res) => {
-    const seasonStart = new Date('2025-09-04');
-    const now = new Date();
-    const diffTime = Math.abs(now.getTime() - seasonStart.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    const currentWeek = Math.min(18, Math.max(1, Math.floor(diffDays / 7) + 1));
-    
-    res.json({ 
-      currentWeek,
-      seasonStart: seasonStart.toISOString(),
-      calculatedAt: now.toISOString()
-    });
+  // Live NFL schedule from ESPN
+  app.get('/api/week', async (req, res) => {
+    try {
+      const week = parseInt(req.query.number?.toString() || '1');
+      const season = parseInt(req.query.season?.toString() || '2025');
+      
+      const cacheKey = `schedule_${season}_${week}`;
+      let schedule = cache.get(cacheKey);
+      
+      if (!schedule) {
+        schedule = await scheduleProvider.getWeekSchedule(week, season);
+        cache.set(cacheKey, schedule, 'schedule');
+      }
+      
+      res.json(schedule);
+    } catch (error) {
+      console.error('Week schedule fetch failed:', error);
+      res.status(500).json({ message: 'Failed to fetch week schedule' });
+    }
+  });
+
+  // Live betting odds from The Odds API
+  app.get('/api/odds', async (req, res) => {
+    try {
+      const week = parseInt(req.query.week?.toString() || '1');
+      
+      const cacheKey = `odds_week_${week}`;
+      let odds = cache.get(cacheKey);
+      
+      if (!odds) {
+        odds = await oddsProvider.getGameOdds();
+        cache.set(cacheKey, odds, 'odds');
+      }
+      
+      res.json(odds);
+    } catch (error) {
+      console.error('Odds fetch failed:', error);
+      res.status(500).json({ message: 'Failed to fetch odds' });
+    }
+  });
+
+  // Featured offensive players only (QB/RB/WR/TE)
+  app.get('/api/players/offense', async (req, res) => {
+    try {
+      const teamId = req.query.teamId?.toString();
+      if (!teamId) {
+        return res.status(400).json({ message: 'teamId parameter required' });
+      }
+      
+      const cacheKey = `offense_${teamId}`;
+      let offense = cache.get(cacheKey);
+      
+      if (!offense) {
+        offense = await playersProvider.getFeaturedOffense(teamId);
+        // Strict validation: ensure no defensive players
+        if (offense?.players) {
+          offense.players = playersProvider.validateOffensiveOnly(offense.players);
+        }
+        cache.set(cacheKey, offense, 'players');
+      }
+      
+      res.json(offense);
+    } catch (error) {
+      console.error('Players fetch failed:', error);
+      res.status(500).json({ message: 'Failed to fetch offensive players' });
+    }
+  });
+
+  // GuerillaGenics predictions with market analysis
+  app.get('/api/picks', async (req, res) => {
+    try {
+      const week = parseInt(req.query.week?.toString() || '1');
+      
+      const cacheKey = `picks_week_${week}`;
+      let picks = cache.get(cacheKey);
+      
+      if (!picks) {
+        // Get live data for predictions
+        const schedule = await scheduleProvider.getWeekSchedule(week);
+        const odds = await oddsProvider.getGameOdds();
+        
+        picks = [];
+        
+        for (const game of schedule) {
+          // Match game with odds by team names
+          const gameOdds = odds.find(o => 
+            (o.homeTeam?.includes(game.homeTeam.name) || 
+             o.awayTeam?.includes(game.awayTeam.name)) ||
+            (o.homeTeam?.includes(game.homeTeam.abbr) || 
+             o.awayTeam?.includes(game.awayTeam.abbr))
+          );
+          
+          if (gameOdds) {
+            const homeOffense = await playersProvider.getFeaturedOffense(game.homeTeam.id);
+            const awayOffense = await playersProvider.getFeaturedOffense(game.awayTeam.id);
+            
+            const pick = await predictionsService.generatePick(
+              game, 
+              gameOdds, 
+              [homeOffense, awayOffense]
+            );
+            
+            picks.push({
+              ...pick,
+              game: {
+                id: game.id,
+                homeTeam: game.homeTeam,
+                awayTeam: game.awayTeam,
+                startEt: game.startEt,
+                timeSlot: game.timeSlot
+              },
+              odds: gameOdds,
+              offense: { home: homeOffense, away: awayOffense }
+            });
+          }
+        }
+        
+        cache.set(cacheKey, picks, 'picks');
+      }
+      
+      res.json(picks);
+    } catch (error) {
+      console.error('Picks generation failed:', error);
+      res.status(500).json({ message: 'Failed to generate picks' });
+    }
+  });
+
+  // Legacy endpoint for backward compatibility
+  app.get('/api/weekly-picks/:week', async (req, res) => {
+    try {
+      const week = parseInt(req.params.week);
+      // Redirect to new picks endpoint
+      const picksResponse = await fetch(`${req.protocol}://${req.get('host')}/api/picks?week=${week}`);
+      const picks = await picksResponse.json();
+      res.json(picks);
+    } catch (error) {
+      console.error('Legacy weekly picks failed:', error);
+      res.status(500).json({ message: 'Failed to fetch weekly picks' });
+    }
   });
 
   // Player props and betting lines
