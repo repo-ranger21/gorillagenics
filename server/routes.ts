@@ -419,6 +419,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Newsletter subscription endpoint
+  app.post("/api/subscribe", async (req, res) => {
+    try {
+      const { email, paymentMethod } = req.body;
+      
+      console.log('📧 Newsletter subscription request:', { email });
+      
+      // In production, integrate with Stripe for payment processing
+      // and save subscriber to database
+      
+      // Simulate subscription processing
+      const subscription = {
+        id: `sub_${Date.now()}`,
+        email,
+        status: 'active',
+        plan: 'premium',
+        amount: 1000, // $10.00 in cents
+        currency: 'usd',
+        interval: 'month',
+        created: new Date().toISOString()
+      };
+      
+      res.json({
+        success: true,
+        subscription,
+        message: "Successfully subscribed to GuerillaGenics Premium!"
+      });
+    } catch (error) {
+      console.error("Error processing subscription:", error);
+      res.status(500).json({ 
+        success: false,
+        message: "Failed to process subscription" 
+      });
+    }
+  });
+
+  // Get subscription status endpoint
+  app.get("/api/subscription/:email", async (req, res) => {
+    try {
+      const { email } = req.params;
+      
+      // In production, check database for subscription status
+      // For demo, return mock active subscription
+      const subscription = {
+        id: `sub_${Date.now()}`,
+        email,
+        status: 'active',
+        plan: 'premium',
+        nextBilling: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+      };
+      
+      res.json({ subscription });
+    } catch (error) {
+      console.error("Error fetching subscription:", error);
+      res.status(500).json({ message: "Failed to fetch subscription" });
+    }
+  });
+
   const httpServer = createServer(app);
   
   // Initialize live data and start scheduler in development

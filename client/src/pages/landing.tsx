@@ -70,6 +70,9 @@ export default function Landing() {
               <a href="#alerts" className="text-muted-foreground hover:text-foreground transition-colors">
                 Alerts
               </a>
+              <a href="/wizard" className="text-muted-foreground hover:text-foreground transition-colors">
+                Wizard
+              </a>
               <Button 
                 data-testid="button-enter-jungle"
                 className="bg-primary text-primary-foreground hover:bg-primary/90"
@@ -107,12 +110,21 @@ export default function Landing() {
               <a href="#alerts" className="block text-muted-foreground hover:text-foreground transition-colors">
                 Alerts
               </a>
-              <Button 
-                className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
-                onClick={() => scrollToSection('dashboard')}
-              >
-                Enter the Jungle
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Button 
+                  className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
+                  onClick={() => scrollToSection('dashboard')}
+                >
+                  Enter the Jungle
+                </Button>
+                <Button 
+                  className="flex-1 bg-accent text-accent-foreground hover:bg-accent/90"
+                  onClick={() => window.location.href = '/wizard'}
+                  data-testid="try-wizard-button"
+                >
+                  🧙‍♂️ Try Wizard
+                </Button>
+              </div>
             </motion.div>
           )}
         </div>
