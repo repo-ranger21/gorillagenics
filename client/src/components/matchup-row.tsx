@@ -3,7 +3,9 @@ import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, MapPin, TrendingUp, TrendingDown } from "lucide-react";
+import { Clock, MapPin, TrendingUp, TrendingDown, Activity } from "lucide-react";
+import InjuryVisualizer, { generateMockInjuryData } from "@/components/injury-visualizer";
+import { calculatePlayerInjuryImpact } from "@/utils/injuryCalculator";
 
 interface Game {
   id: string;
@@ -296,6 +298,45 @@ export default function MatchupRow({ game }: MatchupRowProps) {
                   </div>
                 )}
               </div>
+
+              {/* Injury Impact Visualizers - Compact View */}
+              {game.bioBoost.factors?.injuries?.awayInjuries && game.bioBoost.factors?.injuries?.homeInjuries && (
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="text-center">
+                    <div className="text-xs text-muted-foreground mb-1">Away Team Injuries</div>
+                    <InjuryVisualizer
+                      teamName={game.awayTeam.name}
+                      teamAbbr={game.awayTeam.abbreviation}
+                      injuries={game.bioBoost.factors.injuries.awayInjuries.map(injury => ({
+                        playerId: injury.playerId,
+                        playerName: injury.playerName,
+                        position: injury.position,
+                        status: injury.injuryStatus,
+                        injuryType: injury.injuryType,
+                        impactScore: calculatePlayerInjuryImpact(injury).impactScore
+                      }))}
+                      compact={true}
+                    />
+                  </div>
+                  
+                  <div className="text-center">
+                    <div className="text-xs text-muted-foreground mb-1">Home Team Injuries</div>
+                    <InjuryVisualizer
+                      teamName={game.homeTeam.name}
+                      teamAbbr={game.homeTeam.abbreviation}
+                      injuries={game.bioBoost.factors.injuries.homeInjuries.map(injury => ({
+                        playerId: injury.playerId,
+                        playerName: injury.playerName,
+                        position: injury.position,
+                        status: injury.injuryStatus,
+                        injuryType: injury.injuryType,
+                        impactScore: calculatePlayerInjuryImpact(injury).impactScore
+                      }))}
+                      compact={true}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </motion.div>
         )}

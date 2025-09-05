@@ -100,16 +100,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Week 1 NFL Games endpoint with BioBoost calculations
   app.get('/api/week1', async (req, res) => {
     try {
-      // Import BioBoost calculator
+      // Import BioBoost calculator and injury calculator
       const { calculateBioBoost, generateRecommendation, generateGorillaCommentary, generateMockGameFactors } = await import('./utils/bioBoostCalculator.js');
+      const { generateMockInjuries, calculateTeamInjuryImpact } = await import('./utils/injuryCalculator.js');
       
       // Simulate live odds updates and calculate BioBoost scores
       const gamesWithBioBoost = week1Games.map(game => {
         // Generate mock factors for BioBoost calculation
         const factors = generateMockGameFactors(game.id);
         
+        // Generate mock injury data for both teams
+        const awayInjuries = generateMockInjuries(game.awayTeam.abbreviation);
+        const homeInjuries = generateMockInjuries(game.homeTeam.abbreviation);
+        
+        // Calculate injury impact and integrate with factors
+        const awayInjuryImpact = calculateTeamInjuryImpact(awayInjuries);
+        const homeInjuryImpact = calculateTeamInjuryImpact(homeInjuries);
+        
+        // Adjust BioBoost factors based on injury impact
+        const injuryAdjustedFactors = {
+          ...factors,
+          injuries: {
+            keyPlayersOut: Math.floor((awayInjuryImpact.totalImpact + homeInjuryImpact.totalImpact) / 100),
+            opponentKeyOut: factors.injuries.opponentKeyOut,
+            awayTeamImpact: awayInjuryImpact.totalImpact,
+            homeTeamImpact: homeInjuryImpact.totalImpact,
+            awayInjuries,
+            homeInjuries
+          }
+        };
+        
         // Calculate BioBoost score (0-100) using streamlined logic
-        const bioBoostScore = calculateBioBoost(factors);
+        const bioBoostScore = calculateBioBoost(injuryAdjustedFactors);
         
         // Generate recommendation
         const { recommendation, confidence } = generateRecommendation(bioBoostScore, game.overUnder);
