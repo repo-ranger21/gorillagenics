@@ -108,11 +108,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Generate mock factors for BioBoost calculation
         const factors = generateMockGameFactors(game.id);
         
-        // Calculate BioBoost score (0-100)
-        const bioBoostScore = calculateBioBoost({
-          ...game,
-          ...factors
-        });
+        // Calculate BioBoost score (0-100) using streamlined logic
+        const bioBoostScore = calculateBioBoost(factors);
         
         // Generate recommendation
         const { recommendation, confidence } = generateRecommendation(bioBoostScore, game.overUnder);
@@ -138,10 +135,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             confidence: confidence,
             commentary: commentary,
             factors: {
-              injury: factors.injuries,
+              injuries: factors.injuries,
               weather: factors.weather,
-              lineMovement: factors.lineMovement,
-              rest: factors.restDays
+              lineMove: factors.lineMove,
+              restDays: factors.restDays,
+              travelMiles: factors.travelMiles
             }
           }
         };

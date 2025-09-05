@@ -1,131 +1,50 @@
 // GuerillaGenics BioBoost Scoring Engine
-// Calculates 0-100 score based on multiple factors affecting game outcomes
+// Calculates 0-100 score based on core factors affecting game outcomes
 
-export function calculateBioBoost(gameData) {
-  let score = 50; // Base score
-  
-  const {
-    awayTeam,
-    homeTeam,
-    overUnder,
-    weather = {},
-    injuries = {},
-    lineMovement = {},
-    restDays = {}
-  } = gameData;
+export function calculateBioBoost({ injuries, weather, lineMove, restDays, travelMiles }) {
+  let score = 50; // baseline
 
-  // Injury Impact Analysis (-20 to +10 points)
-  const injuryImpact = calculateInjuryImpact(injuries);
-  score += injuryImpact;
+  // Injuries: subtract for key players out, add for opponent injuries
+  if (injuries.keyPlayersOut > 0) score -= injuries.keyPlayersOut * 5;
+  if (injuries.opponentKeyOut > 0) score += injuries.opponentKeyOut * 4;
 
-  // Weather Conditions (-15 to +5 points)
-  const weatherImpact = calculateWeatherImpact(weather);
-  score += weatherImpact;
+  // Weather: adjust for extreme conditions
+  if (weather.windMph > 20) score -= 4;
+  if (weather.tempF < 32 || weather.tempF > 90) score -= 3;
+  if (weather.precipChance > 50) score -= 2;
 
-  // Line Movement Analysis (-10 to +15 points)
-  const lineImpact = calculateLineMovement(lineMovement);
-  score += lineImpact;
+  // Line movement: positive toward team = confidence boost
+  if (lineMove > 0) score += Math.min(lineMove * 2, 6);
+  if (lineMove < 0) score -= Math.min(Math.abs(lineMove) * 2, 6);
 
-  // Rest/Travel Factors (-8 to +8 points)
-  const restImpact = calculateRestImpact(restDays);
-  score += restImpact;
+  // Rest/travel: more rest = boost, long travel = penalty
+  if (restDays > 7) score += 3;
+  if (travelMiles > 1500) score -= 2;
 
-  // Over/Under Bias (+/- 5 points based on total)
-  const totalBias = calculateTotalBias(overUnder);
-  score += totalBias;
-
-  // Ensure score stays within 0-100 range
+  // Clamp between 0 and 100
   return Math.max(0, Math.min(100, Math.round(score)));
 }
 
-function calculateInjuryImpact(injuries) {
-  if (!injuries || Object.keys(injuries).length === 0) {
-    return Math.random() * 6 - 3; // Random small variation
-  }
+// Helper function to generate consistent mock factors for games
+export function generateMockFactors(gameId) {
+  // Generate consistent mock data for each game based on ID
+  const seed = hashCode(gameId);
+  const random = seedRandom(seed);
   
-  let impact = 0;
-  
-  // Key position injuries have bigger impact
-  if (injuries.quarterback) impact -= 15;
-  if (injuries.runningBack) impact -= 8;
-  if (injuries.wideReceiver) impact -= 6;
-  if (injuries.offensiveLine) impact -= 10;
-  if (injuries.defense) impact -= 5;
-  
-  return impact;
-}
-
-function calculateWeatherImpact(weather) {
-  if (!weather || Object.keys(weather).length === 0) {
-    return Math.random() * 4 - 2; // Random small variation
-  }
-  
-  let impact = 0;
-  
-  // Wind affects passing games (favors under)
-  if (weather.wind && weather.wind > 15) impact -= 8;
-  if (weather.wind && weather.wind > 25) impact -= 15;
-  
-  // Temperature extremes
-  if (weather.temp && weather.temp < 25) impact -= 5;
-  if (weather.temp && weather.temp > 95) impact -= 3;
-  
-  // Precipitation
-  if (weather.precipitation && weather.precipitation > 50) impact -= 10;
-  
-  // Dome games get slight boost
-  if (weather.dome) impact += 3;
-  
-  return impact;
-}
-
-function calculateLineMovement(lineMovement) {
-  if (!lineMovement || Object.keys(lineMovement).length === 0) {
-    return Math.random() * 4 - 2; // Random small variation
-  }
-  
-  let impact = 0;
-  
-  // Sharp money movement (reverse line movement)
-  if (lineMovement.sharpMoney) impact += 10;
-  
-  // Public betting percentage
-  if (lineMovement.publicBetting > 80) impact -= 5;
-  if (lineMovement.publicBetting < 30) impact += 8;
-  
-  // Line steam/reverse
-  if (lineMovement.steamMove) impact += 12;
-  if (lineMovement.reverseLineMovement) impact += 15;
-  
-  return impact;
-}
-
-function calculateRestImpact(restDays) {
-  if (!restDays || Object.keys(restDays).length === 0) {
-    return Math.random() * 3 - 1.5; // Random small variation
-  }
-  
-  let impact = 0;
-  
-  // Rest advantage
-  const restDiff = (restDays.home || 7) - (restDays.away || 7);
-  impact += restDiff * 1.5;
-  
-  // Travel distance impact
-  if (restDays.travelMiles > 2000) impact -= 3;
-  if (restDays.travelMiles > 3000) impact -= 6;
-  
-  // Divisional games
-  if (restDays.divisional) impact += 2;
-  
-  return impact;
-}
-
-function calculateTotalBias(overUnder) {
-  // Slight bias based on total
-  if (overUnder < 40) return 3; // Low totals favor over
-  if (overUnder > 55) return -2; // High totals favor under
-  return Math.random() * 2 - 1;
+  return {
+    injuries: {
+      keyPlayersOut: Math.floor(random() * 3), // 0-2 key players out
+      opponentKeyOut: Math.floor(random() * 2), // 0-1 opponent key players out
+    },
+    weather: {
+      windMph: random() * 30, // 0-30 mph wind
+      tempF: 35 + random() * 50, // 35-85°F temperature
+      precipChance: random() * 100, // 0-100% precipitation chance
+    },
+    lineMove: (random() - 0.5) * 6, // -3 to +3 line movement
+    restDays: 6 + Math.floor(random() * 4), // 6-9 rest days
+    travelMiles: random() * 3000, // 0-3000 miles travel
+  };
 }
 
 export function generateRecommendation(bioBoostScore, overUnder, marketData = {}) {
@@ -201,38 +120,9 @@ export function generateGorillaCommentary(gameData, bioBoostScore, recommendatio
   return options[Math.floor(Math.random() * options.length)];
 }
 
+// Legacy function name for compatibility
 export function generateMockGameFactors(gameId) {
-  // Generate consistent mock data for each game based on ID
-  const seed = hashCode(gameId);
-  const random = seedRandom(seed);
-  
-  return {
-    injuries: {
-      quarterback: random() < 0.1,
-      runningBack: random() < 0.15,
-      wideReceiver: random() < 0.2,
-      offensiveLine: random() < 0.12,
-      defense: random() < 0.18
-    },
-    weather: {
-      temp: 45 + random() * 40, // 45-85°F
-      wind: random() * 20, // 0-20 mph
-      precipitation: random() * 100, // 0-100% chance
-      dome: random() < 0.3
-    },
-    lineMovement: {
-      sharpMoney: random() < 0.2,
-      publicBetting: 30 + random() * 40, // 30-70%
-      steamMove: random() < 0.15,
-      reverseLineMovement: random() < 0.1
-    },
-    restDays: {
-      home: 6 + Math.floor(random() * 3), // 6-8 days
-      away: 6 + Math.floor(random() * 3), // 6-8 days
-      travelMiles: random() * 3000, // 0-3000 miles
-      divisional: random() < 0.25
-    }
-  };
+  return generateMockFactors(gameId);
 }
 
 // Helper functions for consistent randomization

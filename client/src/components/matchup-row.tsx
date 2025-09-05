@@ -258,19 +258,39 @@ export default function MatchupRow({ game }: MatchupRowProps) {
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Weather:</span>
                       <span className={`${
-                        game.bioBoost.factors.weather.wind > 15 ? 'text-red-400' :
-                        game.bioBoost.factors.weather.dome ? 'text-green-400' : 'text-yellow-400'
+                        game.bioBoost.factors.weather.windMph > 20 ? 'text-red-400' :
+                        game.bioBoost.factors.weather.tempF < 32 || game.bioBoost.factors.weather.tempF > 90 ? 'text-orange-400' : 'text-green-400'
                       }`}>
-                        {game.bioBoost.factors.weather.dome ? 'Dome' : 
-                         game.bioBoost.factors.weather.wind > 15 ? 'Windy' : 'Good'}
+                        {game.bioBoost.factors.weather.windMph > 20 ? 'Windy' :
+                         game.bioBoost.factors.weather.tempF < 32 ? 'Cold' :
+                         game.bioBoost.factors.weather.tempF > 90 ? 'Hot' : 'Good'}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Injuries:</span>
                       <span className={`${
-                        game.bioBoost.factors.injury.quarterback ? 'text-red-400' : 'text-green-400'
+                        game.bioBoost.factors.injuries.keyPlayersOut > 0 ? 'text-red-400' : 'text-green-400'
                       }`}>
-                        {game.bioBoost.factors.injury.quarterback ? 'QB Issue' : 'Healthy'}
+                        {game.bioBoost.factors.injuries.keyPlayersOut > 0 ? 
+                         `${game.bioBoost.factors.injuries.keyPlayersOut} Out` : 'Healthy'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Line Move:</span>
+                      <span className={`${
+                        game.bioBoost.factors.lineMove > 1 ? 'text-green-400' :
+                        game.bioBoost.factors.lineMove < -1 ? 'text-red-400' : 'text-yellow-400'
+                      }`}>
+                        {game.bioBoost.factors.lineMove > 1 ? 'Favorable' :
+                         game.bioBoost.factors.lineMove < -1 ? 'Against' : 'Neutral'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Travel:</span>
+                      <span className={`${
+                        game.bioBoost.factors.travelMiles > 1500 ? 'text-orange-400' : 'text-green-400'
+                      }`}>
+                        {game.bioBoost.factors.travelMiles > 1500 ? 'Long' : 'Short'}
                       </span>
                     </div>
                   </div>
