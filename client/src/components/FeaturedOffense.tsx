@@ -118,7 +118,8 @@ export function FeaturedOffense({
                   className="h-8 w-8 rounded-full object-cover"
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';
-                    e.currentTarget.nextElementSibling!.style.display = 'flex';
+                    const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                if (fallback) fallback.style.display = 'flex';
                   }}
                 />
               ) : null}

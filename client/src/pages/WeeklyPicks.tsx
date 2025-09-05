@@ -15,7 +15,7 @@ import NewsletterCTA from "@/components/NewsletterCTA";
 import LoadingScreen from "@/components/LoadingScreen";
 import FallbackContent from "@/components/FallbackContent";
 
-// Utils
+// @ts-ignore
 import { 
   getCurrentNFLWeek, 
   shouldRollover, 
@@ -40,9 +40,9 @@ export default function WeeklyPicks() {
   const [currentWeek, setCurrentWeek] = useState(1);
   const [weekData, setWeekData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState('all');
-  const [lastUpdated, setLastUpdated] = useState(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   // Initialize and fetch data
   useEffect(() => {

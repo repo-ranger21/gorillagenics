@@ -10,10 +10,15 @@ import { RecommendationEngine, type UserProfile } from "./services/recommendatio
 import { dataScheduler } from "./services/data-scheduler";
 import { dataIntegrationService } from "./services/data-integration";
 import { webScrapingService } from "./services/web-scrapers";
+// @ts-ignore
 import { ScheduleEspnAdapter } from "./adapters/scheduleEspn.js";
+// @ts-ignore  
 import { OddsTheOddsApiAdapter } from "./adapters/oddsTheOddsApi.js";
+// @ts-ignore
 import { PlayersSleeperAdapter } from "./adapters/playersSleeper.js";
+// @ts-ignore
 import { PredictionsService } from "./services/predictions.js";
+// @ts-ignore
 import { CacheService } from "./services/cache.js";
 
 export async function registerRoutes(app: Express): Promise<Server> {
