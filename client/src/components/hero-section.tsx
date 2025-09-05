@@ -2,6 +2,13 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import gorillaImage from "@assets/Untitled_1757073459800.png";
 
+const scrollToSection = (sectionId: string) => {
+  const element = document.getElementById(sectionId);
+  if (element) {
+    element.scrollIntoView({ behavior: 'smooth' });
+  }
+};
+
 export default function HeroSection() {
   return (
     <section className="relative min-h-screen gradient-jungle flex items-center justify-center overflow-hidden">
@@ -60,6 +67,7 @@ export default function HeroSection() {
           <Button 
             className="bg-primary text-primary-foreground px-8 py-4 text-lg font-bold hover:bg-primary/90 transition-all transform hover:scale-105 animate-pulse-glow"
             data-testid="button-enter-jungle-hero"
+            onClick={() => scrollToSection('dashboard')}
           >
             🦍 Enter the Jungle
           </Button>
@@ -67,6 +75,7 @@ export default function HeroSection() {
             variant="secondary"
             className="bg-secondary text-secondary-foreground px-8 py-4 text-lg font-bold hover:bg-secondary/80 transition-all"
             data-testid="button-how-it-works"
+            onClick={() => scrollToSection('how-it-works')}
           >
             📊 How It Works
           </Button>

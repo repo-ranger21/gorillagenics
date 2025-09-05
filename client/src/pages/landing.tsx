@@ -11,6 +11,13 @@ import { Separator } from "@/components/ui/separator";
 import { Menu, Twitter, Github } from "lucide-react";
 import { useState } from "react";
 
+const scrollToSection = (sectionId: string) => {
+  const element = document.getElementById(sectionId);
+  if (element) {
+    element.scrollIntoView({ behavior: 'smooth' });
+  }
+};
+
 export default function Landing() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -31,7 +38,7 @@ export default function Landing() {
             </div>
             
             <nav className="hidden md:flex items-center space-x-8">
-              <a href="#how-it-works" className="text-muted-foreground hover:text-foreground transition-colors">
+              <a href="#dashboard" className="text-muted-foreground hover:text-foreground transition-colors">
                 How It Works
               </a>
               <a href="#picks" className="text-muted-foreground hover:text-foreground transition-colors">
@@ -43,6 +50,7 @@ export default function Landing() {
               <Button 
                 data-testid="button-enter-jungle"
                 className="bg-primary text-primary-foreground hover:bg-primary/90"
+                onClick={() => scrollToSection('dashboard')}
               >
                 Enter the Jungle
               </Button>
@@ -67,7 +75,7 @@ export default function Landing() {
               exit={{ opacity: 0, height: 0 }}
               className="md:hidden bg-background border-t border-border py-4 space-y-4"
             >
-              <a href="#how-it-works" className="block text-muted-foreground hover:text-foreground transition-colors">
+              <a href="#dashboard" className="block text-muted-foreground hover:text-foreground transition-colors">
                 How It Works
               </a>
               <a href="#picks" className="block text-muted-foreground hover:text-foreground transition-colors">
@@ -76,7 +84,10 @@ export default function Landing() {
               <a href="#alerts" className="block text-muted-foreground hover:text-foreground transition-colors">
                 Alerts
               </a>
-              <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
+              <Button 
+                className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                onClick={() => scrollToSection('dashboard')}
+              >
                 Enter the Jungle
               </Button>
             </motion.div>
@@ -88,7 +99,7 @@ export default function Landing() {
       <HeroSection />
 
       {/* BioMetric Intelligence Section */}
-      <section id="how-it-works" className="py-20 bg-background">
+      <section id="dashboard" className="py-20 bg-background">
         <div className="container mx-auto px-6">
           <motion.div 
             initial={{ opacity: 0, y: 30 }}
