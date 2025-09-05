@@ -10,6 +10,7 @@ import DashboardWizard from "@/pages/dashboard-wizard";
 import NotificationsPage from "@/pages/notifications";
 import Week1 from "@/pages/week1";
 import Strategy from "@/pages/strategy";
+import RiskHeatmapPage from "@/pages/risk-heatmap";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -23,6 +24,7 @@ function Router() {
         <Route path="/notifications" component={NotificationsPage} />
         <Route path="/week1" component={Week1} />
         <Route path="/strategy" component={Strategy} />
+        <Route path="/risk-heatmap" component={RiskHeatmapPage} />
         <Route component={NotFound} />
       </Switch>
     </>

@@ -7,7 +7,7 @@ import {
   NavigationMenuList,
 } from "@/components/ui/navigation-menu";
 import { cn } from "@/lib/utils";
-import { Menu, X, TrendingUp, Bell, Zap, Home, Target } from "lucide-react";
+import { Menu, X, TrendingUp, Bell, Zap, Home, Target, Brain } from "lucide-react";
 import { useState } from "react";
 
 export function Navigation() {
@@ -32,6 +32,12 @@ export function Navigation() {
       href: "/strategy",
       icon: Target,
       description: "Personalized betting strategies"
+    },
+    {
+      name: "Risk Heatmap",
+      href: "/risk-heatmap", 
+      icon: Brain,
+      description: "Dynamic AI risk analysis"
     },
     {
       name: "Live Dashboard", 
