@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { nflDataService } from "./services/nfl-data";
+import { livePlayerService } from "./services/live-player-service";
 import { dataScheduler } from "./services/data-scheduler";
 import { dataIntegrationService } from "./services/data-integration";
 import { webScrapingService } from "./services/web-scrapers";
@@ -9,10 +10,12 @@ import { webScrapingService } from "./services/web-scrapers";
 export async function registerRoutes(app: Express): Promise<Server> {
   // API routes for GuerillaGenics platform
 
-  // Get all players with BioBoost data
+  // Get all players with BioBoost data (now with live NFL data)
   app.get("/api/players", async (req, res) => {
     try {
-      const players = await storage.getAllPlayers();
+      const { refresh } = req.query;
+      const forceRefresh = refresh === 'true';
+      const players = await livePlayerService.refreshPlayerData(forceRefresh);
       res.json(players);
     } catch (error) {
       console.error("Error fetching players:", error);
@@ -23,6 +26,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get single player by ID
   app.get("/api/players/:id", async (req, res) => {
     try {
+      // First try to refresh live data, then get specific player
+      await livePlayerService.refreshPlayerData();
       const player = await storage.getPlayer(req.params.id);
       if (!player) {
         return res.status(404).json({ message: "Player not found" });
@@ -205,6 +210,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Live player service endpoints
+  app.get("/api/players/top-performers", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      const topPlayers = await livePlayerService.getTopPerformers(limit);
+      res.json(topPlayers);
+    } catch (error) {
+      console.error("Error fetching top performers:", error);
+      res.status(500).json({ message: "Failed to fetch top performers" });
+    }
+  });
+
+  app.get("/api/players/strong-buy", async (req, res) => {
+    try {
+      const strongBuyPlayers = await livePlayerService.getStrongBuyPlayers();
+      res.json(strongBuyPlayers);
+    } catch (error) {
+      console.error("Error fetching strong buy players:", error);
+      res.status(500).json({ message: "Failed to fetch strong buy players" });
+    }
+  });
+
+  app.get("/api/players/team/:teamAbbr", async (req, res) => {
+    try {
+      const { teamAbbr } = req.params;
+      const teamPlayers = await livePlayerService.getPlayersByTeam(teamAbbr);
+      res.json(teamPlayers);
+    } catch (error) {
+      console.error("Error fetching team players:", error);
+      res.status(500).json({ message: "Failed to fetch team players" });
+    }
+  });
+
+  app.get("/api/live-data/status", async (req, res) => {
+    try {
+      const cacheInfo = livePlayerService.getCacheInfo();
+      res.json({
+        status: "active",
+        cache: cacheInfo,
+        description: "Real NFL player data integration active"
+      });
+    } catch (error) {
+      console.error("Error fetching live data status:", error);
+      res.status(500).json({ message: "Failed to fetch status" });
+    }
+  });
+
+  // Force refresh live data
+  app.post("/api/live-data/refresh", async (req, res) => {
+    try {
+      console.log('🔄 Manual refresh requested for NFL player data');
+      const players = await livePlayerService.refreshPlayerData(true);
+      res.json({
+        message: "Live data refreshed successfully",
+        playersUpdated: players.length
+      });
+    } catch (error) {
+      console.error("Error refreshing live data:", error);
+      res.status(500).json({ message: "Failed to refresh live data" });
+    }
+  });
+
   // Super Bowl simulation endpoint (future implementation)
   app.get("/api/superbowl", async (req, res) => {
     try {
@@ -223,9 +290,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   const httpServer = createServer(app);
   
-  // Start data scheduler in development
+  // Initialize live data and start scheduler in development
   if (process.env.NODE_ENV === 'development') {
     console.log('🦍 Starting GuerillaGenics data scheduler in development mode...');
+    
+    // Initialize with live NFL player data
+    setTimeout(async () => {
+      try {
+        console.log('🔄 Initializing live NFL player data...');
+        const players = await livePlayerService.refreshPlayerData(true);
+        console.log(`✅ Initialized with ${players.length} live NFL players`);
+      } catch (error) {
+        console.error('❌ Error initializing live player data:', error);
+      }
+    }, 2000);
+    
     // Uncomment to auto-start scheduler: dataScheduler.start();
   }
   

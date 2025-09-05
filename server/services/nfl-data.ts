@@ -58,8 +58,45 @@ interface OddsAPIResponse {
 
 export class NFLDataService {
   private espnBaseUrl = 'https://site.api.espn.com/apis/site/v2/sports/football/nfl';
+  private espnCoreUrl = 'https://sports.core.api.espn.com/v2/sports/football/leagues/nfl';
   private oddsApiKey = process.env.ODDS_API_KEY;
   private oddsBaseUrl = 'https://api.the-odds-api.com/v4';
+  
+  // NFL team mappings
+  private teamMappings = new Map([
+    ['ARI', { espnId: '22', name: 'Arizona Cardinals' }],
+    ['ATL', { espnId: '1', name: 'Atlanta Falcons' }],
+    ['BAL', { espnId: '33', name: 'Baltimore Ravens' }],
+    ['BUF', { espnId: '2', name: 'Buffalo Bills' }],
+    ['CAR', { espnId: '29', name: 'Carolina Panthers' }],
+    ['CHI', { espnId: '3', name: 'Chicago Bears' }],
+    ['CIN', { espnId: '4', name: 'Cincinnati Bengals' }],
+    ['CLE', { espnId: '5', name: 'Cleveland Browns' }],
+    ['DAL', { espnId: '6', name: 'Dallas Cowboys' }],
+    ['DEN', { espnId: '7', name: 'Denver Broncos' }],
+    ['DET', { espnId: '8', name: 'Detroit Lions' }],
+    ['GB', { espnId: '9', name: 'Green Bay Packers' }],
+    ['HOU', { espnId: '34', name: 'Houston Texans' }],
+    ['IND', { espnId: '11', name: 'Indianapolis Colts' }],
+    ['JAX', { espnId: '30', name: 'Jacksonville Jaguars' }],
+    ['KC', { espnId: '12', name: 'Kansas City Chiefs' }],
+    ['LV', { espnId: '13', name: 'Las Vegas Raiders' }],
+    ['LAC', { espnId: '24', name: 'Los Angeles Chargers' }],
+    ['LAR', { espnId: '14', name: 'Los Angeles Rams' }],
+    ['MIA', { espnId: '15', name: 'Miami Dolphins' }],
+    ['MIN', { espnId: '16', name: 'Minnesota Vikings' }],
+    ['NE', { espnId: '17', name: 'New England Patriots' }],
+    ['NO', { espnId: '18', name: 'New Orleans Saints' }],
+    ['NYG', { espnId: '19', name: 'New York Giants' }],
+    ['NYJ', { espnId: '20', name: 'New York Jets' }],
+    ['PHI', { espnId: '21', name: 'Philadelphia Eagles' }],
+    ['PIT', { espnId: '23', name: 'Pittsburgh Steelers' }],
+    ['SF', { espnId: '25', name: 'San Francisco 49ers' }],
+    ['SEA', { espnId: '26', name: 'Seattle Seahawks' }],
+    ['TB', { espnId: '27', name: 'Tampa Bay Buccaneers' }],
+    ['TEN', { espnId: '10', name: 'Tennessee Titans' }],
+    ['WSH', { espnId: '28', name: 'Washington Commanders' }]
+  ]);
 
   async fetchCurrentWeekGames(): Promise<ESPNGame[]> {
     try {
@@ -86,13 +123,270 @@ export class NFLDataService {
   async fetchTeamRoster(teamId: string): Promise<ESPNPlayer[]> {
     try {
       const response = await axios.get(
-        `https://sports.core.api.espn.com/v2/sports/football/leagues/nfl/seasons/2024/teams/${teamId}/athletes`
+        `${this.espnCoreUrl}/seasons/2024/teams/${teamId}/athletes`
       );
       return response.data.items || [];
     } catch (error) {
       console.error(`Error fetching roster for team ${teamId}:`, error);
       return [];
     }
+  }
+
+  async fetchAllNFLPlayers(limit: number = 50): Promise<any[]> {
+    try {
+      const players: any[] = [];
+      const currentWeekGames = await this.fetchCurrentWeekGames();
+      
+      // Get players from current week's games
+      for (const game of currentWeekGames.slice(0, 8)) { // Limit games to avoid rate limits
+        const competitors = game.competitions?.[0]?.competitors || [];
+        
+        for (const competitor of competitors) {
+          const teamEspnId = competitor.team?.id;
+          if (teamEspnId) {
+            try {
+              const roster = await this.fetchTeamRoster(teamEspnId);
+              
+              // Process top players from each position
+              const positionLimits = { 'QB': 2, 'RB': 3, 'WR': 4, 'TE': 2, 'K': 1 };
+              const positionCounts: { [key: string]: number } = {};
+              
+              for (const playerRef of roster) {
+                if (players.length >= limit) break;
+                
+                try {
+                  // Fetch detailed player data
+                  const playerResponse = await axios.get(playerRef.$ref);
+                  const player = playerResponse.data;
+                  
+                  if (player && player.position?.abbreviation) {
+                    const pos = player.position.abbreviation;
+                    const currentCount = positionCounts[pos] || 0;
+                    const maxForPosition = positionLimits[pos] || 1;
+                    
+                    if (currentCount < maxForPosition) {
+                      // Calculate enhanced player data
+                      const enhancedPlayer = await this.createEnhancedPlayer(player, competitor.team);
+                      players.push(enhancedPlayer);
+                      positionCounts[pos] = currentCount + 1;
+                    }
+                  }
+                  
+                  // Rate limiting
+                  await this.sleep(100);
+                } catch (playerError) {
+                  console.warn('Error fetching individual player:', playerError);
+                }
+              }
+            } catch (teamError) {
+              console.warn(`Error fetching roster for team ${teamEspnId}:`, teamError);
+            }
+          }
+          
+          // Rate limiting between teams
+          await this.sleep(500);
+        }
+      }
+      
+      console.log(`✅ Fetched ${players.length} real NFL players from ESPN API`);
+      return players;
+    } catch (error) {
+      console.error('Error fetching NFL players:', error);
+      return [];
+    }
+  }
+
+  private async createEnhancedPlayer(espnPlayer: any, team: any): Promise<any> {
+    try {
+      // Extract basic player info
+      const playerId = this.generatePlayerId(espnPlayer.displayName);
+      const position = espnPlayer.position?.abbreviation || 'Unknown';
+      const teamAbbr = team.abbreviation || 'UNK';
+      
+      // Get current stats if available
+      let stats = null;
+      try {
+        if (espnPlayer.id) {
+          stats = await this.fetchPlayerStats(espnPlayer.id.toString());
+        }
+      } catch (statsError) {
+        console.warn('Could not fetch stats for player:', espnPlayer.displayName);
+      }
+      
+      // Generate opponent matchup
+      const opponent = await this.findOpponent(teamAbbr);
+      const matchup = `${teamAbbr} ${Math.random() > 0.5 ? '@' : 'vs'} ${opponent}`;
+      
+      // Calculate BioBoost with real data
+      const bioBoostData = this.calculateEnhancedBioBoost(espnPlayer, stats, position);
+      
+      // Generate betting line based on position and stats
+      const bettingData = this.generateBettingLine(position, stats, bioBoostData.bioBoost);
+      
+      return {
+        id: playerId,
+        name: espnPlayer.displayName,
+        position: position,
+        team: teamAbbr,
+        matchup: matchup,
+        sleepScore: bioBoostData.sleepScore,
+        testosteroneProxy: bioBoostData.testosteroneProxy,
+        cortisolProxy: bioBoostData.cortisolProxy,
+        hydrationLevel: bioBoostData.hydrationLevel,
+        injuryRecoveryDays: bioBoostData.injuryRecoveryDays,
+        bioBoostScore: bioBoostData.bioBoost,
+        recommendedPick: bettingData.pick,
+        betLine: bettingData.line,
+        betType: bettingData.type,
+        confidence: bettingData.confidence,
+        gameTime: this.generateGameTime(),
+        commentary: this.generateCommentary(bioBoostData.bioBoost, bettingData.pick),
+        espnId: espnPlayer.id,
+        realStats: stats
+      };
+    } catch (error) {
+      console.error('Error creating enhanced player:', error);
+      return null;
+    }
+  }
+
+  private calculateEnhancedBioBoost(player: any, stats: any, position: string) {
+    // Age-based testosterone calculation
+    const age = this.calculateAge(player.dateOfBirth) || 26;
+    let testosteroneBase = age < 24 ? 85 : age < 28 ? 80 : age < 32 ? 75 : 70;
+    
+    // Position bonuses for physicality
+    const physicalPositions = ['RB', 'LB', 'DE', 'DT', 'OL'];
+    if (physicalPositions.includes(position)) testosteroneBase += 10;
+    
+    // Height/weight factors for testosterone proxy
+    const height = player.height || 72; // inches
+    const weight = player.weight || 200; // pounds
+    const bmi = (weight / (height * height)) * 703;
+    if (bmi >= 25 && bmi <= 30) testosteroneBase += 5; // Optimal BMI range for athletes
+    
+    // Recent performance impact on confidence/testosterone
+    if (stats && stats.passing?.passingYards > 300) testosteroneBase += 8;
+    if (stats && stats.rushing?.rushingYards > 100) testosteroneBase += 10;
+    if (stats && stats.receiving?.receivingYards > 100) testosteroneBase += 7;
+    
+    // Sleep score (simulated with some real factors)
+    let sleepScore = 70 + Math.floor(Math.random() * 25);
+    if (age < 25) sleepScore += 5; // Younger players typically sleep better
+    
+    // Cortisol (stress) - lower is better
+    let cortisol = 30 + Math.floor(Math.random() * 40);
+    if (stats && stats.errors > 2) cortisol += 15; // More errors = more stress
+    
+    // Hydration (simulated)
+    const hydration = 75 + Math.floor(Math.random() * 25);
+    
+    // Injury recovery (simulated, would integrate with injury reports)
+    const injuryRecovery = Math.floor(Math.random() * 7);
+    
+    // Final BioBoost calculation
+    const bioBoost = Math.round(
+      sleepScore * 0.30 +
+      testosteroneBase * 0.40 +
+      (100 - cortisol) * 0.15 +
+      hydration * 0.10 +
+      Math.max(100 - injuryRecovery * 5, 0) * 0.05
+    );
+    
+    return {
+      sleepScore,
+      testosteroneProxy: Math.min(testosteroneBase, 100),
+      cortisolProxy: cortisol,
+      hydrationLevel: hydration,
+      injuryRecoveryDays: injuryRecovery,
+      bioBoost: Math.min(Math.max(bioBoost, 0), 100)
+    };
+  }
+
+  private generateBettingLine(position: string, stats: any, bioBoost: number) {
+    const lines: { [key: string]: { type: string, baseRange: [number, number] } } = {
+      'QB': { type: 'Passing Yards', baseRange: [220, 320] },
+      'RB': { type: 'Rushing Yards', baseRange: [60, 120] },
+      'WR': { type: 'Receiving Yards', baseRange: [45, 95] },
+      'TE': { type: 'Receiving Yards', baseRange: [35, 75] },
+      'K': { type: 'Made FGs', baseRange: [1, 3] }
+    };
+    
+    const lineData = lines[position] || { type: 'Fantasy Points', baseRange: [8, 16] };
+    const [min, max] = lineData.baseRange;
+    
+    // Adjust line based on BioBoost
+    const bioBoostFactor = bioBoost / 100;
+    const adjustment = (max - min) * (bioBoostFactor - 0.5) * 0.4; // +/- 20% based on BioBoost
+    const baseLine = min + (max - min) * 0.6; // Start at 60% of range
+    const finalLine = baseLine + adjustment;
+    
+    // Generate recommendation
+    let pick = 'HOLD';
+    let confidence = 50;
+    
+    if (bioBoost >= 80) {
+      pick = bioBoost >= 90 ? 'STRONG BUY' : 'BUY';
+      confidence = 75 + Math.floor(Math.random() * 20);
+    } else if (bioBoost <= 45) {
+      pick = 'AVOID';
+      confidence = 65 + Math.floor(Math.random() * 15);
+    } else {
+      confidence = 50 + Math.floor(Math.random() * 20);
+    }
+    
+    return {
+      line: Math.round(finalLine * 2) / 2, // Round to nearest 0.5
+      type: lineData.type,
+      pick,
+      confidence
+    };
+  }
+
+  private async findOpponent(teamAbbr: string): Promise<string> {
+    // Simplified opponent finding - would enhance with schedule API
+    const teams = Array.from(this.teamMappings.keys()).filter(t => t !== teamAbbr);
+    return teams[Math.floor(Math.random() * teams.length)];
+  }
+
+  private generateGameTime(): string {
+    const times = ['1:00 PM ET', '4:25 PM ET', '8:20 PM ET', '1:00 PM ET', '4:05 PM ET'];
+    return times[Math.floor(Math.random() * times.length)];
+  }
+
+  private generateCommentary(bioBoost: number, pick: string): string {
+    if (bioBoost >= 90 && pick === 'STRONG BUY') {
+      return '🦍 Alpha gorilla energy detected! Prime jungle domination expected.';
+    } else if (bioBoost >= 80) {
+      return '🍌 Strong BioBoost metrics. Expect above-average primal performance.';
+    } else if (bioBoost <= 45) {
+      return '😴 Low energy readings. Gorilla recommends caution in the jungle.';
+    } else if (pick === 'AVOID') {
+      return '⚠️ Mixed signals from the jungle. Proceed with gorilla-level caution.';
+    }
+    return 'Steady gorilla performance expected. Standard jungle protocols apply.';
+  }
+
+  private generatePlayerId(name: string): string {
+    return name.toLowerCase()
+      .replace(/[^a-z0-9\s]/g, '')
+      .replace(/\s+/g, '-');
+  }
+
+  private calculateAge(dateOfBirth: string): number | null {
+    if (!dateOfBirth) return null;
+    const today = new Date();
+    const birthDate = new Date(dateOfBirth);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   async fetchInjuryReport(): Promise<any[]> {

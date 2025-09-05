@@ -3,7 +3,8 @@ import HeroSection from "@/components/hero-section";
 import BioBoostCard from "@/components/bio-boost-card";
 import PlayerPickCard from "@/components/player-pick-card";
 import JuiceWatchAlerts from "@/components/juice-watch-alerts";
-import { bioMetrics, players, alerts } from "@/data/mock-data";
+import { bioMetrics } from "@/data/mock-data";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -20,6 +21,20 @@ const scrollToSection = (sectionId: string) => {
 
 export default function Landing() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Fetch live NFL player data
+  const { data: players = [], isLoading: playersLoading } = useQuery({
+    queryKey: ['/api/players'],
+    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
+    staleTime: 2 * 60 * 1000, // Data considered fresh for 2 minutes
+  });
+
+  // Fetch live alerts
+  const { data: alerts = [], isLoading: alertsLoading } = useQuery({
+    queryKey: ['/api/alerts'],
+    refetchInterval: 60 * 1000, // Refetch every minute for alerts
+    staleTime: 30 * 1000, // Fresh for 30 seconds
+  });
 
   return (
     <div className="bg-background text-foreground overflow-x-hidden">
@@ -197,17 +212,31 @@ export default function Landing() {
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {players.map((player, index) => (
-              <motion.div
-                key={player.id}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.8, delay: index * 0.1 }}
-              >
-                <PlayerPickCard player={player} />
-              </motion.div>
-            ))}
+            {playersLoading ? (
+              // Loading skeleton
+              Array.from({ length: 6 }).map((_, index) => (
+                <motion.div
+                  key={`skeleton-${index}`}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.8, delay: index * 0.1 }}
+                  className="h-96 bg-muted/20 rounded-lg animate-pulse"
+                />
+              ))
+            ) : (
+              players.map((player, index) => (
+                <motion.div
+                  key={player.id}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.8, delay: index * 0.1 }}
+                >
+                  <PlayerPickCard player={player} />
+                </motion.div>
+              ))
+            )}
           </div>
 
           {/* Premium CTA */}
@@ -256,7 +285,13 @@ export default function Landing() {
             </p>
           </motion.div>
 
-          <JuiceWatchAlerts alerts={alerts} />
+          {alertsLoading ? (
+            <div className="text-center py-8">
+              <div className="animate-pulse text-muted-foreground">Loading live alerts...</div>
+            </div>
+          ) : (
+            <JuiceWatchAlerts alerts={alerts} />
+          )}
         </div>
       </section>
 

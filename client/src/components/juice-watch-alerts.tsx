@@ -57,10 +57,17 @@ export default function JuiceWatchAlerts({ alerts }: JuiceWatchAlertsProps) {
     }
   };
 
-  const formatTimeAgo = (timestamp: Date | null) => {
+  const formatTimeAgo = (timestamp: Date | string | null) => {
     if (!timestamp) return "Just now";
+    
+    // Convert string timestamp to Date object if needed
+    const date = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
+    
+    // Check if date is valid
+    if (isNaN(date.getTime())) return "Just now";
+    
     const now = new Date();
-    const diff = now.getTime() - timestamp.getTime();
+    const diff = now.getTime() - date.getTime();
     const minutes = Math.floor(diff / 60000);
     const hours = Math.floor(diff / 3600000);
     
