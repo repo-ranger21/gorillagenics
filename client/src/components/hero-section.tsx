@@ -38,7 +38,7 @@ export default function HeroSection() {
             transition={{ duration: 1.2, delay: 0.2 }}
             className="text-5xl md:text-7xl font-bold mb-4"
           >
-            <span className="block text-gradient">TESTTICKER</span>
+            <span className="block text-gradient">GUERRILLAGENICS</span>
           </motion.h1>
           
           <motion.h2 
