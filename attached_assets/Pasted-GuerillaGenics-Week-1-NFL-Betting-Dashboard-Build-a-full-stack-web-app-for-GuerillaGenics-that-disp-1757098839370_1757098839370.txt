@@ -1,0 +1,116 @@
+GuerillaGenics Week 1 NFL Betting Dashboard
+
+Build a full‑stack web app for GuerillaGenics that displays the complete 2025–26 NFL Week 1 schedule with betting lines, over/unders, and space for proprietary BioBoost projections. The dashboard will be accessible when the user clicks “Enter the Jungle” from the landing page.
+
+---
+
+🎯 **Core Requirements**
+
+1. **Landing Page**
+   - Dark green jungle‑themed background (#0B3D2E)
+   - “OVER” (red) and “UNDER” (green) buttons at top
+   - Brand name “GUERILLAGENICS” in bold yellow/green
+   - Tagline: “Bet Smarter. Go Primal.”
+   - Yellow rounded button with 🦍 icon labeled “Enter the Jungle” → navigates to `/week1`
+   - Responsive mobile‑first layout
+
+2. **Week 1 Dashboard (`/week1`)**
+   - **Header:** “GuerillaGenics — Week 1 NFL Picks & Lines”
+   - **Table/Grid View:** Each matchup in chronological order with:
+     - Date & Time (ET)
+     - Teams (away @ home)
+     - Point Spread
+     - Over/Under total
+     - Moneyline (optional)
+     - Placeholder for BioBoost score & recommendation
+   - **Filters/Tabs:** All games | Thursday | Friday | Sunday Early | Sunday Late | SNF | MNF
+   - **Live Odds Updates:** Simulate via mock WebSocket feed
+   - **Newsletter CTA:** $10/month Substack signup module in sidebar
+   - **Disclaimer:** Persistent responsible betting notice
+
+3. **Branded Loading Screen**
+   - Full‑screen gorilla mascot animation (Framer Motion bounce)
+   - Jungle palette
+   - Text: “🦍 Peeling the data bananas…”
+
+4. **Fallback Content**
+   - If API fails, show last‑known cached data from `localStorage`
+   - If no cache, display: “Data is swinging in late — check back soon!” + newsletter signup
+
+5. **Progressive Rendering**
+   - Render table shell instantly
+   - Hydrate rows as data arrives
+   - Use Tailwind skeleton loaders (`animate-pulse`)
+
+---
+
+📅 **2025–26 NFL Week 1 Matchups & Lines**  
+*(Spreads and totals from BetMGM as of Aug 28 2025)*
+
+**Thursday, Sept 4**  
+- Dallas Cowboys (+7) @ Philadelphia Eagles (‑7) — O/U 46.5
+
+**Friday, Sept 5** *(São Paulo, Brazil)*  
+- Kansas City Chiefs (‑3) vs Los Angeles Chargers (+3) — O/U 44.5
+
+**Sunday, Sept 7 — 1:00 PM ET**  
+- Tampa Bay Buccaneers (‑1.5) @ Atlanta Falcons (+1.5) — O/U 48.5  
+- Cincinnati Bengals (‑6) @ Cleveland Browns (+6) — O/U 48  
+- Miami Dolphins (+1.5) @ Indianapolis Colts (‑1.5) — O/U 45.5  
+- Carolina Panthers (+3) @ Jacksonville Jaguars (‑3) — O/U 45.5  
+- Las Vegas Raiders (+3) @ New England Patriots (‑3) — O/U 41.5  
+- Arizona Cardinals (‑6) @ New Orleans Saints (+6) — O/U 42.5  
+- Pittsburgh Steelers (‑3) @ New York Jets (+3) — O/U 38.5  
+- New York Giants (+6) @ Washington Commanders (‑6) — O/U 45.5
+
+**Sunday, Sept 7 — 4:05 PM ET**  
+- Tennessee Titans (+7.5) @ Denver Broncos (‑7.5) — O/U 42.5  
+- San Francisco 49ers (‑2.5) @ Seattle Seahawks (+2.5) — O/U 44.5
+
+**Sunday, Sept 7 — 4:25 PM ET**  
+- Detroit Lions (+1.5) @ Green Bay Packers (‑1.5) — O/U 47.5  
+- Houston Texans (+2.5) @ Los Angeles Rams (‑2.5) — O/U 44.5
+
+**Sunday Night Football — 8:20 PM ET**  
+- Baltimore Ravens (+1.5) @ Buffalo Bills (‑1.5) — O/U 52.5
+
+**Monday Night Football — Sept 8 — 8:15 PM ET**  
+- Minnesota Vikings (‑1.5) @ Chicago Bears (+1.5) — O/U 43.5
+
+---
+
+🛠 **Tech Stack**
+- **Frontend:** React, TailwindCSS, Framer Motion, React Router
+- **Backend:** Node.js, Express, WebSocket (for live odds/alerts)
+- **State:** React Context or Zustand
+- **Data:** Start with hardcoded Week 1 JSON; structure for easy swap to live API
+- **Newsletter:** Substack embed/API integration
+- **Env Vars:** 
+  - `VITE_API_BASE`
+  - `VITE_WS_URL`
+  - `VITE_SUBSTACK_PUBLICATION`
+  - `PORT`
+
+---
+
+📦 **Folder Structure**
+
+
+/src /pages Landing.jsx Week1.jsx /components JungleButton.jsx LoadingScreen.jsx MatchupTable.jsx MatchupRow.jsx NewsletterCTA.jsx FallbackContent.jsx /assets mascot.svg /server index.js week1Data.js
+
+
+---
+
+🧪 **Acceptance Criteria**
+- Clicking “Enter the Jungle” loads Week 1 dashboard with branded loading screen
+- All matchups display with spreads, totals, and placeholders for BioBoost
+- Live odds simulate via WebSocket updates
+- Fallback content + cached data appear if API fails
+- Newsletter signup visible in sidebar and fallback state
+- Progressive rendering: shell visible instantly, data fills in as ready
+- All styles match jungle/mascot brand
+
+---
+
+Deliver a complete, runnable project with mock Week 1 data wired to backend, ready to swap in live DFS/BioBoost/alerts APIs.
+
