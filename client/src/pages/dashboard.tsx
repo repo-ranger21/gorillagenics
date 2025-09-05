@@ -240,8 +240,6 @@ export default function Dashboard() {
             {/* Live Alerts Feed */}
             <LiveAlerts alerts={alerts || []} />
             
-            {/* Newsletter CTA */}
-            <NewsletterCTA />
           </div>
         </div>
       </main>
