@@ -1,0 +1,123 @@
+GuerillaGenics “Weekly Picks” with Auto‑Rollover
+
+Enhance the existing GuerillaGenics web app (https://guerillagenics.app/) by adding a new “Weekly Picks” feature that displays GuerillaGenics’ proprietary NFL picks for the current week, starting with the 2025–26 Week 1 slate, and automatically updates to the next week’s matchups every Tuesday.
+
+---
+
+🎯 **Core Requirements**
+
+1. **Navigation & Access**
+   - Add a new button or link labeled “Weekly Picks” to the main navigation or dashboard.
+   - Route: `/weekly-picks`
+   - Clicking “Weekly Picks” loads a dedicated page with the current week’s matchups, BioBoost scores, and predicted winners.
+
+2. **Weekly Picks Page Layout**
+   - **Header:** “GuerillaGenics — Weekly Picks” with sub‑tagline “Bet Smarter. Go Primal.”
+   - **Week Selector:** Dropdown or arrows to navigate between NFL weeks (default to current week).
+   - **Matchup Cards/Table:** For each game:
+     - Date & Time (ET)
+     - Teams (away @ home)
+     - Point Spread
+     - Over/Under total
+     - GuerillaGenics **BioBoost Score** (0–100)
+     - Predicted Winner (highlighted with mascot emoji)
+     - Short satirical commentary
+   - **Filters:** All games | Thursday | Friday | Sunday Early | Sunday Late | SNF | MNF
+   - **Live Odds Updates:** Simulate via mock WebSocket feed for spreads/totals
+   - **Newsletter CTA:** $10/month Substack signup module in sidebar
+   - **Disclaimer:** Persistent responsible betting notice
+
+3. **Week 1 Data (Pre‑loaded)**
+   Use the following GuerillaGenics Week 1 picks and BioBoost scores:
+
+   **Thursday, Sept 4**  
+   - Philadelphia Eagles 🦅 — BioBoost 88
+
+   **Friday, Sept 5** *(São Paulo, Brazil)*  
+   - Kansas City Chiefs 🏹 — BioBoost 84
+
+   **Sunday, Sept 7 — 1:00 PM ET**  
+   - Tampa Bay Buccaneers 🏴‍☠️ — BioBoost 79  
+   - Cincinnati Bengals 🐅 — BioBoost 91  
+   - Miami Dolphins 🐬 — BioBoost 77  
+   - Jacksonville Jaguars 🐆 — BioBoost 82  
+   - New England Patriots 🏈 — BioBoost 75  
+   - Arizona Cardinals 🏹 — BioBoost 89  
+   - Pittsburgh Steelers 🐤 — BioBoost 80  
+   - Washington Commanders 🪖 — BioBoost 86
+
+   **Sunday, Sept 7 — 4:05 PM ET**  
+   - Denver Broncos 🐎 — BioBoost 85  
+   - San Francisco 49ers 🟥🟨 — BioBoost 83
+
+   **Sunday, Sept 7 — 4:25 PM ET**  
+   - Green Bay Packers 🧀 — BioBoost 84  
+   - Los Angeles Rams 🐏 — BioBoost 78
+
+   **Sunday Night Football — 8:20 PM ET**  
+   - Buffalo Bills 🦬 — BioBoost 87
+
+   **Monday Night Football — Sept 8 — 8:15 PM ET**  
+   - Minnesota Vikings 🟣💛 — BioBoost 76
+
+4. **BioBoost Calculation**
+   - Include `bioBoostCalculator.js` utility to dynamically compute scores from:
+     - Injury status
+     - Weather impact
+     - Line movement
+     - Rest/travel factors
+   - For Week 1, use the provided scores as static values.
+
+5. **Automation: Weekly Rollover**
+   - Integrate with a public NFL schedule API (e.g., MySportsFeeds, TheSportsDB, or similar).
+   - On page load:
+     - Determine current NFL week based on today’s date.
+     - Fetch matchups for that week from the API.
+     - If it’s Tuesday 12:00 AM ET or later, automatically switch to the next week’s matchups.
+   - Store last‑fetched week in localStorage to avoid unnecessary API calls.
+   - Allow manual override via Week Selector.
+
+6. **Branded Loading & Fallback**
+   - Show gorilla mascot animation with “🦍 Peeling the data bananas…” while loading.
+   - If API fails, show last‑known cached picks or “Data is swinging in late — check back soon!” + newsletter signup.
+
+---
+
+🛠 **Tech Stack**
+- Frontend: React, TailwindCSS, Framer Motion, React Router
+- Backend: Node.js, Express, WebSocket (for live odds/alerts)
+- State: React Context or Zustand
+- Data: Start with hardcoded Week 1 JSON; fetch live data for future weeks
+- Newsletter: Substack embed/API integration
+- Env Vars:  
+  - `VITE_API_BASE`  
+  - `VITE_WS_URL`  
+  - `VITE_SUBSTACK_PUBLICATION`  
+  - `NFL_API_KEY` (for schedule API)  
+  - `PORT`
+
+---
+
+📦 **Folder Structure Additions**
+
+
+/src/pages WeeklyPicks.jsx /src/components WeeklyPickCard.jsx WeekSelector.jsx NewsletterCTA.jsx LoadingScreen.jsx FallbackContent.jsx /src/utils bioBoostCalculator.js weekFetcher.js /server weeklyPicksData.js
+
+
+---
+
+🧪 **Acceptance Criteria**
+- “Weekly Picks” link visible and functional from main site
+- Page loads with branded loading screen, then displays current week’s picks
+- Each matchup shows spread, total, BioBoost score, predicted winner, and commentary
+- Live odds simulate via WebSocket updates
+- Every Tuesday at 12:00 AM ET, the page automatically switches to the next week’s matchups
+- Manual week navigation works via Week Selector
+- Fallback content + cached data appear if API fails
+- Newsletter signup visible in sidebar and fallback state
+- Progressive rendering: shell visible instantly, data fills in as ready
+- All styles match jungle/mascot brand
+
+---
+
+Deliver a complete, runnable enhancement to guerillagenics.app with the new “Weekly Picks” feature fully integrated, automated weekly rollover, and ready to swap to live data feeds.
