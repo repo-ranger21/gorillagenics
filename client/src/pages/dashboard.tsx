@@ -45,6 +45,12 @@ export default function Dashboard() {
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 
+  // Fetch Week 1 matchups for current picks
+  const { data: weeklyPicks } = useQuery<any[]>({
+    queryKey: ['/api/weekly-picks/1'],
+    refetchInterval: 2 * 60 * 1000, // Refresh every 2 minutes
+  });
+
   // Fetch live alerts
   const { data: alerts } = useQuery<LiveAlert[]>({
     queryKey: ['/api/bets/live'],
@@ -96,6 +102,55 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Main Dashboard - 3/4 width */}
           <div className="lg:col-span-3 space-y-6">
+            {/* Week 1 Matchups Section */}
+            {weeklyPicks && weeklyPicks.length > 0 && (
+              <Card className="bg-background/20 backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-yellow-400">
+                    🏈 Week 1 Matchups & Picks
+                    <Badge variant="outline" className="border-green-500 text-green-400">
+                      {weeklyPicks.length} Games
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-4 max-h-96 overflow-y-auto">
+                    {weeklyPicks.slice(0, 6).map((game: any, index: number) => (
+                      <motion.div
+                        key={game.gameId || index}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        className="flex items-center justify-between p-4 bg-background/30 rounded-lg border border-primary/20"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="text-sm">
+                            <div className="font-semibold">{game.awayTeam} @ {game.homeTeam}</div>
+                            <div className="text-muted-foreground text-xs">{game.date}</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="text-right">
+                            <div className="text-sm font-bold text-primary">
+                              Pick: {game.winner === 'home' ? game.homeTeam : game.awayTeam}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {game.winnerConfidence || 'MODERATE'} Confidence
+                            </div>
+                          </div>
+                          <div className="text-2xl">🦍</div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                  <div className="mt-4 text-center">
+                    <Button variant="outline" asChild>
+                      <a href="/weekly-picks">View All Week 1 Picks</a>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
             {/* Over/Under Tabs */}
             <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "over" | "under")}>
               <TabsList className="grid w-full grid-cols-2 bg-background/20 backdrop-blur-sm">

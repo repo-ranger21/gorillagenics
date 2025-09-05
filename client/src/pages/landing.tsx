@@ -29,6 +29,13 @@ export default function Landing() {
     staleTime: 2 * 60 * 1000, // Data considered fresh for 2 minutes
   });
 
+  // Fetch Week 1 picks for featured content
+  const { data: week1Picks = [] } = useQuery<any[]>({
+    queryKey: ['/api/weekly-picks/1'],
+    refetchInterval: 5 * 60 * 1000,
+    staleTime: 2 * 60 * 1000,
+  });
+
   // Fetch live alerts
   const { data: alerts = [], isLoading: alertsLoading } = useQuery<any[]>({
     queryKey: ['/api/alerts'],
@@ -125,19 +132,71 @@ export default function Landing() {
             
             <div className="flex items-center justify-center gap-8 text-center">
               <div>
-                <div className="text-3xl font-bold text-primary">12-3</div>
-                <div className="text-sm text-muted-foreground">This Week</div>
+                <div className="text-3xl font-bold text-primary">{week1Picks.length}</div>
+                <div className="text-sm text-muted-foreground">Week 1 Games</div>
               </div>
               <div>
-                <div className="text-3xl font-bold text-accent">78%</div>
-                <div className="text-sm text-muted-foreground">Hit Rate</div>
+                <div className="text-3xl font-bold text-accent">
+                  {week1Picks.length > 0 ? Math.round(week1Picks.filter((p: any) => p.winnerConfidence === 'HIGH').length / week1Picks.length * 100) : 0}%
+                </div>
+                <div className="text-sm text-muted-foreground">High Confidence</div>
               </div>
               <div>
-                <div className="text-3xl font-bold text-destructive">+24.7u</div>
-                <div className="text-sm text-muted-foreground">Profit</div>
+                <div className="text-3xl font-bold text-destructive">LIVE</div>
+                <div className="text-sm text-muted-foreground">Updated</div>
               </div>
             </div>
           </motion.div>
+
+          {/* Featured Week 1 Picks */}
+          {week1Picks.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
+              className="mb-12"
+            >
+              <Card className="bg-gradient-to-r from-primary/10 to-accent/10 border-primary/20 mb-8">
+                <CardContent className="p-6">
+                  <h3 className="text-2xl font-bold text-foreground mb-4 text-center">
+                    🏈 Featured Week 1 Picks
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {week1Picks.slice(0, 3).map((pick: any, index: number) => (
+                      <motion.div
+                        key={pick.gameId || index}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        whileInView={{ opacity: 1, scale: 1 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.5, delay: index * 0.1 }}
+                        className="bg-background/50 rounded-lg p-4 border border-primary/20"
+                      >
+                        <div className="text-sm text-center">
+                          <div className="font-semibold mb-2">{pick.awayTeam} @ {pick.homeTeam}</div>
+                          <div className="text-xs text-muted-foreground mb-3">{pick.date}</div>
+                          <div className="flex items-center justify-center gap-2 mb-2">
+                            <div className="text-lg">🦍</div>
+                            <div className="font-bold text-primary">
+                              {pick.winner === 'home' ? pick.homeTeam : pick.awayTeam}
+                            </div>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {pick.winnerConfidence || 'MODERATE'} Confidence
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                  <div className="text-center mt-6">
+                    <Button variant="outline" asChild className="bg-primary/10">
+                      <a href="/weekly-picks">View All Week 1 Picks</a>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {playersLoading ? (
