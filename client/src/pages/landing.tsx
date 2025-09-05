@@ -25,14 +25,14 @@ export default function Landing() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Fetch live NFL player data
-  const { data: players = [], isLoading: playersLoading } = useQuery({
+  const { data: players = [], isLoading: playersLoading } = useQuery<any[]>({
     queryKey: ['/api/players'],
     refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
     staleTime: 2 * 60 * 1000, // Data considered fresh for 2 minutes
   });
 
   // Fetch live alerts
-  const { data: alerts = [], isLoading: alertsLoading } = useQuery({
+  const { data: alerts = [], isLoading: alertsLoading } = useQuery<any[]>({
     queryKey: ['/api/alerts'],
     refetchInterval: 60 * 1000, // Refetch every minute for alerts
     staleTime: 30 * 1000, // Fresh for 30 seconds
@@ -79,9 +79,9 @@ export default function Landing() {
               <Button 
                 data-testid="button-enter-jungle"
                 className="bg-primary text-primary-foreground hover:bg-primary/90"
-                onClick={() => scrollToSection('dashboard')}
+                onClick={() => window.location.href = '/dashboard'}
               >
-                Enter the Jungle
+                🦍 Enter the Jungle
               </Button>
             </nav>
             
@@ -116,9 +116,9 @@ export default function Landing() {
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button 
                   className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
-                  onClick={() => scrollToSection('dashboard')}
+                  onClick={() => window.location.href = '/dashboard'}
                 >
-                  Enter the Jungle
+                  🦍 Enter the Jungle
                 </Button>
                 <Button 
                   className="flex-1 bg-accent text-accent-foreground hover:bg-accent/90"
@@ -248,9 +248,9 @@ export default function Landing() {
                 />
               ))
             ) : (
-              players.map((player, index) => (
+              (players as any[]).map((player: any, index: number) => (
                 <motion.div
-                  key={player.id}
+                  key={player.id || `player-${index}`}
                   initial={{ opacity: 0, y: 30 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
@@ -313,7 +313,7 @@ export default function Landing() {
               <div className="animate-pulse text-muted-foreground">Generating personalized recommendations...</div>
             </div>
           ) : (
-            <PersonalizedRecommendations players={players} />
+            <PersonalizedRecommendations players={players as any[]} />
           )}
         </div>
       </section>
@@ -341,7 +341,7 @@ export default function Landing() {
               <div className="animate-pulse text-muted-foreground">Loading heatmap data...</div>
             </div>
           ) : (
-            <PerformanceHeatmap players={players} />
+            <PerformanceHeatmap players={players as any[]} />
           )}
         </div>
       </section>
@@ -369,7 +369,7 @@ export default function Landing() {
               <div className="animate-pulse text-muted-foreground">Loading live alerts...</div>
             </div>
           ) : (
-            <JuiceWatchAlerts alerts={alerts} />
+            <JuiceWatchAlerts alerts={alerts as any[]} />
           )}
         </div>
       </section>

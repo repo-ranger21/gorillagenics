@@ -1,0 +1,104 @@
+ GuerillaGenics Live Over/Under Dashboard
+
+Build a full‑stack web app for GuerillaGenics — a satirical, data‑driven DFS betting platform — that launches a live Over/Under betting dashboard when the user clicks the “Enter the Jungle” button on the landing page.
+
+---
+
+🎯 **Core Requirements**
+
+1. **Landing Page**
+   - Dark green jungle‑themed background (#0B3D2E)
+   - Two buttons at top: “OVER” (red) and “UNDER” (green)
+   - Brand name “GUERILLAGENICS” in bold yellow/green
+   - Tagline: “Bet Smarter. Go Primal.”
+   - Yellow rounded button with 🦍 icon labeled “Enter the Jungle” → navigates to `/dashboard`
+   - Green “How It Works” button or link
+   - Responsive mobile‑first layout
+
+2. **Dashboard Page (`/dashboard`)**
+   - **Header:** Title “GuerillaGenics — Over/Unders” + horizontal odds ticker
+   - **Main Layout:** Two‑column grid (bets + sidebar)
+   - **Over/Under Tabs:** Toggle between Over picks and Under picks
+   - **Bet Cards:** Show matchup, market, line, recommendation, confidence %, BioBoost score, commentary
+   - **Live Alerts Feed:** Real‑time “Juice Watch” events (e.g., BioBoost spikes, weather shifts, line moves)
+   - **Newsletter CTA:** $10/month Substack signup module in sidebar
+   - **Disclaimer:** Persistent responsible betting notice
+
+3. **Branded Loading Screen**
+   - Full‑screen component with gorilla mascot animation (Framer Motion bounce)
+   - Jungle palette
+   - Playful text: “🦍 Peeling the data bananas…”
+
+4. **Fallback Content**
+   - If APIs fail, show last‑known cached data from `localStorage`
+   - If no cache, display friendly message: “Data is swinging in late — check back soon!” + newsletter signup
+
+5. **Progressive Rendering**
+   - Render dashboard shell immediately
+   - Hydrate sections as data arrives
+   - Use Tailwind skeleton loaders (`animate-pulse`) for placeholders
+
+---
+
+🛠 **Tech Stack**
+- **Frontend:** React, TailwindCSS, Framer Motion, React Router
+- **Backend:** Node.js, Express, WebSocket (for live odds/alerts)
+- **State:** React Context or Zustand
+- **Data:** Start with mock JSON, structure for easy swap to real APIs
+- **Newsletter:** Substack embed or API integration
+- **Env Vars:** 
+  - `VITE_API_BASE` (frontend)
+  - `VITE_WS_URL` (frontend)
+  - `VITE_SUBSTACK_PUBLICATION` (frontend)
+  - `PORT` (backend)
+
+---
+
+📦 **Folder Structure**
+
+
+/src /pages Landing.jsx Dashboard.jsx /components JungleButton.jsx HowItWorks.jsx LoadingScreen.jsx OddsTicker.jsx OverUnderTabs.jsx BetCard.jsx BetsFeed.jsx NewsletterCTA.jsx FallbackContent.jsx /assets mascot.svg /utils apiClient.js cache.js /server index.js mockData.js
+
+
+---
+
+🔌 **Backend Endpoints**
+- `GET /api/health` → returns `{ dfs: "ok", bioboost: "ok", alerts: "ok" }`
+- `GET /api/lines` → returns array of line objects:
+
+
+{ id: “BUF-DAL-PY”, matchup: “DAL @ BUF”, market: “Passing Yds”, line: 277.5, recommendation: “Over”, confidence: 72, bioBoost: 86, move: 0.0, commentary: “Max Juice: secondary mismatch.” }
+
+- `GET /api/bets/live` → returns array of live alert objects:
+
+
+{ emoji: “🦍”, title: “BioBoost Spike”, detail: “Hydration ↑; OVER confidence +4%” }
+
+- WebSocket `/ws` → emits:
+- `{ type: "odds:updates", payload: [LineItem, ...] }`
+- `{ type: "alerts:juice", payload: LiveAlert }`
+
+---
+
+🎨 **UI/UX Details**
+- Odds ticker scrolls horizontally with matchup, O/U lines, and movement arrows
+- Over/Under tabs styled as pill buttons with active state highlight
+- Bet cards animate in with fade/slide
+- Live alerts prepend to feed with emoji + short description
+- Newsletter CTA styled with yellow button linking to Substack
+- All components responsive and mobile‑friendly
+
+---
+
+🧪 **Acceptance Criteria**
+- Clicking “Enter the Jungle” loads dashboard with branded loading screen
+- Live odds and alerts update via WebSocket
+- If API fails, fallback content + cached data appear
+- Newsletter signup visible in sidebar and fallback state
+- Progressive rendering: shell visible instantly, data fills in as ready
+- All styles match jungle/mascot brand
+
+---
+
+Deliver a complete, runnable project with mock data wired to backend, ready to swap in real DFS/BioBoost/alerts APIs.
+

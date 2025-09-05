@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { WebSocketServer } from "ws";
 import { storage } from "./storage";
 import { nflDataService } from "./services/nfl-data";
 import { livePlayerService } from "./services/live-player-service";
@@ -477,6 +478,153 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Live Over/Under Dashboard API endpoints
+  app.get("/api/lines", async (req, res) => {
+    try {
+      // Generate mock Over/Under betting lines with BioBoost integration
+      const mockLines = [
+        {
+          id: "BUF-DAL-PY",
+          matchup: "DAL @ BUF",
+          market: "Passing Yards",
+          line: 277.5,
+          recommendation: "Over",
+          confidence: 72,
+          bioBoost: 86,
+          move: 0.5,
+          commentary: "Max Juice: Secondary mismatch. Gorilla sees big throws coming!"
+        },
+        {
+          id: "MIA-NYJ-RY",
+          matchup: "NYJ @ MIA",
+          market: "Rushing Yards",
+          line: 89.5,
+          recommendation: "Under",
+          confidence: 68,
+          bioBoost: 73,
+          move: -1.0,
+          commentary: "Primal instinct: Defense stacked. Run game gets stuffed."
+        },
+        {
+          id: "KC-CIN-TD",
+          matchup: "CIN @ KC",
+          market: "Total TDs",
+          line: 2.5,
+          recommendation: "Over",
+          confidence: 81,
+          bioBoost: 92,
+          move: 0.0,
+          commentary: "Banana alert! Red zone efficiency through the roof."
+        },
+        {
+          id: "SF-LAR-REC",
+          matchup: "LAR @ SF",
+          market: "Receptions",
+          line: 6.5,
+          recommendation: "Under",
+          confidence: 64,
+          bioBoost: 78,
+          move: 0.5,
+          commentary: "Gorilla gut check: Target share dropping like coconuts."
+        },
+        {
+          id: "BAL-PIT-PY2",
+          matchup: "PIT @ BAL",
+          market: "Passing Yards",
+          line: 245.5,
+          recommendation: "Over",
+          confidence: 89,
+          bioBoost: 94,
+          move: 2.5,
+          commentary: "FULL BANANAS! Weather clear, arm strength peaking!"
+        },
+        {
+          id: "GB-MIN-RY2",
+          matchup: "MIN @ GB",
+          market: "Rushing Yards",
+          line: 112.5,
+          recommendation: "Under",
+          confidence: 71,
+          bioBoost: 82,
+          move: -0.5,
+          commentary: "Cold weather grind. Expect conservative game plan."
+        }
+      ];
+      
+      res.json(mockLines);
+    } catch (error) {
+      console.error("Error fetching lines:", error);
+      res.status(500).json({ message: "Failed to fetch lines" });
+    }
+  });
+
+  app.get("/api/bets/live", async (req, res) => {
+    try {
+      // Generate mock live alerts for Juice Watch
+      const mockAlerts = [
+        {
+          id: `alert-${Date.now()}-1`,
+          emoji: "🦍",
+          title: "BioBoost Spike",
+          detail: "Josh Allen's hydration levels up 12%; OVER confidence +4%",
+          timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(), // 5 mins ago
+          type: "bioboost"
+        },
+        {
+          id: `alert-${Date.now()}-2`,
+          emoji: "📈",
+          title: "Line Movement",
+          detail: "Lamar Jackson Rushing Yards moved from 65.5 to 68.0",
+          timestamp: new Date(Date.now() - 12 * 60 * 1000).toISOString(), // 12 mins ago
+          type: "line_move"
+        },
+        {
+          id: `alert-${Date.now()}-3`,
+          emoji: "⚡",
+          title: "Alpha Ape Alert",
+          detail: "Travis Kelce testosterone proxy surged 8% after warm-ups",
+          timestamp: new Date(Date.now() - 18 * 60 * 1000).toISOString(), // 18 mins ago
+          type: "bioboost"
+        },
+        {
+          id: `alert-${Date.now()}-4`,
+          emoji: "🌧️",
+          title: "Weather Update",
+          detail: "Wind gusts increasing in Buffalo - passing game impact expected",
+          timestamp: new Date(Date.now() - 25 * 60 * 1000).toISOString(), // 25 mins ago
+          type: "weather"
+        },
+        {
+          id: `alert-${Date.now()}-5`,
+          emoji: "🚨",
+          title: "Injury Report",
+          detail: "Tyreek Hill listed as questionable with ankle concern",
+          timestamp: new Date(Date.now() - 35 * 60 * 1000).toISOString(), // 35 mins ago
+          type: "injury"
+        }
+      ];
+      
+      res.json(mockAlerts);
+    } catch (error) {
+      console.error("Error fetching live bets:", error);
+      res.status(500).json({ message: "Failed to fetch live alerts" });
+    }
+  });
+
+  app.get("/api/health", async (req, res) => {
+    try {
+      res.json({
+        dfs: "ok",
+        bioboost: "ok",
+        alerts: "ok",
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Error fetching health status:", error);
+      res.status(500).json({ message: "Health check failed" });
+    }
+  });
+
   // Push notification subscription endpoint
   app.post("/api/notifications/subscribe", async (req, res) => {
     try {
@@ -637,6 +785,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+  
+  // WebSocket server for live updates - using separate port to avoid Vite conflicts
+  const wss = new WebSocketServer({ 
+    server: httpServer, 
+    path: '/api/ws',
+    perMessageDeflate: false 
+  });
+  
+  wss.on('connection', (ws) => {
+    console.log('🔌 GuerillaGenics client connected to WebSocket');
+    
+    // Send welcome message
+    ws.send(JSON.stringify({
+      type: 'connection:established',
+      message: 'Connected to GuerillaGenics live feed 🦍'
+    }));
+    
+    // Simulate live updates every 15 seconds for demo
+    const interval = setInterval(() => {
+      if (ws.readyState === ws.OPEN) {
+        // Random odds update
+        const mockUpdate = {
+          type: 'odds:update',
+          payload: {
+            id: `update-${Date.now()}`,
+            matchup: ['BUF vs DAL', 'MIA vs NYJ', 'KC vs CIN'][Math.floor(Math.random() * 3)],
+            market: 'Passing Yards',
+            line: Math.floor(Math.random() * 50) + 200,
+            move: (Math.random() - 0.5) * 4,
+            confidence: Math.floor(Math.random() * 40) + 60
+          }
+        };
+        
+        ws.send(JSON.stringify(mockUpdate));
+        
+        // Random alert every other update
+        if (Math.random() > 0.6) {
+          const alerts = [
+            '🦍 BioBoost spike detected!',
+            '⚡ Alpha Ape alert triggered!',
+            '📈 Significant line movement!',
+            '🌧️ Weather update affecting game!'
+          ];
+          
+          const alertUpdate = {
+            type: 'alerts:juice',
+            payload: {
+              id: `alert-${Date.now()}`,
+              emoji: '🦍',
+              title: 'Live Update',
+              detail: alerts[Math.floor(Math.random() * alerts.length)],
+              timestamp: new Date().toISOString(),
+              type: 'bioboost'
+            }
+          };
+          
+          ws.send(JSON.stringify(alertUpdate));
+        }
+      }
+    }, 15000);
+    
+    ws.on('close', () => {
+      console.log('🔌 GuerillaGenics client disconnected');
+      clearInterval(interval);
+    });
+    
+    ws.on('error', (error) => {
+      console.error('🔌 GuerillaGenics WebSocket error:', error);
+      clearInterval(interval);
+    });
+  });
   
   // Initialize live data and start scheduler in development
   if (process.env.NODE_ENV === 'development') {
