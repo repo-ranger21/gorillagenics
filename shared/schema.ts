@@ -1,6 +1,12 @@
-import { pgTable, text, varchar, integer, real, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, real, timestamp, boolean, serial } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  username: text("username").notNull().unique(),
+  password: text("password").notNull(),
+});
 
 export const players = pgTable("players", {
   id: varchar("id").primaryKey(),
@@ -55,9 +61,15 @@ export const insertBioMetricSchema = createInsertSchema(bioMetrics).omit({
   id: true,
 });
 
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+});
+
+export type User = typeof users.$inferSelect;
 export type Player = typeof players.$inferSelect;
 export type Alert = typeof alerts.$inferSelect;
 export type BioMetric = typeof bioMetrics.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertPlayer = z.infer<typeof insertPlayerSchema>;
 export type InsertAlert = z.infer<typeof insertAlertSchema>;
 export type InsertBioMetric = z.infer<typeof insertBioMetricSchema>;
