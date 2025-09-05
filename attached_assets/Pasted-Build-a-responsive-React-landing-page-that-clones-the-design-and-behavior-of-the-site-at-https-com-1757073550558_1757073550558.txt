@@ -1,0 +1,46 @@
+Build a responsive React landing page that clones the design and behavior of the site at https://comma-khaki-02307315.figma.site/. Match the layout, animations, color palette, and mascot-driven branding exactly.
+
+Design Requirements:
+- Use TailwindCSS for styling
+- Match the jungle-themed color palette: deep greens, banana yellows, and primal reds
+- Use the same typography hierarchy and spacing as the Figma site
+- Import and display the Over/Under Ape mascot image from the original site
+- Include animated transitions for:
+  - Section reveals (fade-in, slide-up)
+  - BioBoost score changes (pulse or bounce)
+  - Juice Watch alerts (gorilla shake or flash)
+- Use SVG or Unsplash-hosted images from the original site where applicable
+
+Page Sections:
+1. **Hero Section**
+   - Title: “Bet Smarter. Go Primal.”
+   - CTA Button: “Enter the Jungle”
+   - Background image or gradient matching the Figma site
+
+2. **BioMetric Intelligence**
+   - Cards for each metric: Testosterone Index, Sleep Score, Cortisol Proxy, Hydration Level, Injury Recovery Timeline
+   - Include BioBoost scores and historical impact stats
+   - Use animated progress bars or score meters
+
+3. **Primate Picks**
+   - Display featured players (e.g., Josh Allen, CeeDee Lamb, Saquon Barkley)
+   - Show stat lines, BioBoost scores, and betting recommendations
+   - Include mascot reaction emoji and confidence percentage
+
+4. **Juice Watch Alerts**
+   - Live feed of metric spikes
+   - Alert configuration toggles: Zen Gorilla, Alpha Ape, Full Bananas
+   - Include animated gorilla reactions and alert summaries
+
+5. **Footer**
+   - Jungle-themed newsletter signup
+   - Links to ethics, transparency, and responsible gaming
+   - Satirical disclaimer: “Made with 🦍 in the jungle”
+
+Technical Requirements:
+- Use React functional components
+- Use Framer Motion or Tailwind transitions for animations
+- Organize code into `/components`, `/assets`, and `/pages`
+- Use dummy JSON data to simulate BioBoost scores and alerts
+- Ensure mobile responsiveness and accessibility
+

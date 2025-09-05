@@ -1,0 +1,121 @@
+Build a full‑stack, contributor‑friendly DFS NFL betting and sports analytics platform called **GuerillaGenics**. The app blends biometric health metrics, satirical mascot‑driven UI, and advanced simulation modeling to deliver Over/Under predictions, Juice Watch alerts, and Super Bowl probability dashboards.
+
+---
+
+### 🎯 Core Objectives
+1. **Frontend**: Responsive React app styled with TailwindCSS, matching the design, animations, and color palette from https://comma-khaki-02307315.figma.site/.
+2. **Backend**: Node.js + Express API with MongoDB for player/team data, health metrics, and simulation results.
+3. **Data Pipeline**: Ethical scrapers and API integrations for public NFL stats, injury reports, biometric proxies, and betting market odds.
+4. **Modeling**: BioBoost scoring engine for player props + Monte Carlo simulation for Super Bowl probabilities.
+5. **Gamification**: Mascot reactions, Banana Chip rewards, Satire Badges, and Juice Watch alerts.
+
+---
+
+### 🎨 Frontend Requirements
+- **Pages**:
+  - `LandingPage` — Hero section (“Bet Smarter. Go Primal.”), CTA, mascot animation.
+  - `Dashboard` — Player BioBoost cards, Over/Under picks, Juice Watch feed.
+  - `SuperBowlSim` — Ranked table of all 32 NFL teams with win probabilities.
+  - `Ethics` — Transparency and data source disclosure.
+- **Components**:
+  - `HeroSection.jsx` — Full‑width hero with background gradient, mascot SVG, animated CTA.
+  - `BioBoostCard.jsx` — Displays player metrics: Sleep Score, Testosterone Proxy, Cortisol Proxy, Hydration Level, Injury Recovery Days, BioBoost score, recommended pick, satirical commentary.
+  - `JuiceWatchAlert.jsx` — Live metric spike alerts with gorilla animations.
+  - `SuperBowlTable.jsx` — Team probability table with mascot reactions.
+- **Styling**:
+  - TailwindCSS with jungle‑themed palette: deep greens (#0B3D2E), banana yellow (#FFD447), primal red (#B22222).
+  - Framer Motion for fade‑in, slide‑up, and bounce animations.
+- **Assets**:
+  - Mascot images/GIFs from Figma site.
+  - SVG icons for metrics and badges.
+
+---
+
+### 🛠 Backend Requirements
+- **Routes**:
+  - `GET /api/players` — Returns all player metrics + BioBoost scores.
+  - `GET /api/players/:id` — Returns single player data with scoring breakdown.
+  - `GET /api/superbowl` — Returns simulation results for all 32 teams.
+  - `GET /api/alerts` — Returns Juice Watch alerts.
+- **Models**:
+  - `Player.js` — Player name, position, team, matchup, metrics, BioBoost score, recommended pick.
+  - `Team.js` — Team name, conference, odds, simulated win probability.
+  - `Alert.js` — Player/team, metric spike type, timestamp, commentary.
+- **Logic**:
+  - `bioBoostCalculator.js` — Weighted scoring: Sleep (30%), Testosterone Proxy (40%), Cortisol Proxy (15%), Hydration (10%), Injury Recovery (5%).
+  - `superBowlSimulator.js` — Monte Carlo simulation (10,000 runs) using Elo, odds, and conference path adjustments.
+
+---
+
+### 📡 Data Pipeline
+- **Scrapers**:
+  - `nflStats.js` — Pull weekly player stats from nflfastR API.
+  - `injuryReports.js` — Scrape NFL.com injury reports.
+  - `socialMetrics.js` — Scrape public WHOOP/Oura posts from verified accounts (sleep, recovery %, HRV).
+  - `marketOdds.js` — Pull Super Bowl futures odds from public odds APIs.
+- **Normalization**:
+  - Convert all metrics to 0–100 scale.
+  - Map cortisol proxy from injury/stress indicators.
+  - Store raw + normalized data in MongoDB.
+
+---
+
+### 🎮 Gamification
+- **Banana Chips** — Earned for correct picks, tracked in user profile.
+- **Satire Badges**:
+  - 🦍 Max Juice — BioBoost > 90
+  - 💤 Sleepless Savage — Sleep Score < 50
+  - 💧 Hydration Hero — Hydration > 90
+- **Mascot Reactions**:
+  - Chest‑Thump Mode (>16% SB win probability)
+  - Banana Toss Confidence (>12%)
+  - Moderate Juice (>8%)
+  - Sleeper Watchlist (>4%)
+  - Ice Cold (<4%)
+
+---
+
+### 📊 Sample Data Structures
+
+**Player Example:**
+{
+  "name": "Saquon Barkley",
+  "position": "RB",
+  "team": "NYG",
+  "matchup": "NYG vs DAL",
+  "sleepScore": 92,
+  "testosteroneProxy": 87,
+  "cortisolProxy": "Low",
+  "hydrationLevel": 78,
+  "injuryRecoveryDays": 2,
+  "bioBoostScore": 91,
+  "recommendedPick": "Over",
+  "commentary": "🦍 Max Juice detected. Expect banana-fueled dominance."
+}
+
+**Team Example:**
+{
+  "name": "Baltimore Ravens",
+  "odds": "+650",
+  "winPercent": 17.4,
+  "conference": "AFC",
+  "mascotReaction": "🦍 Chest-Thump Mode Activated"
+}
+
+---
+
+### 🚀 Deployment
+- Frontend: Deploy to Vercel or Replit hosting.
+- Backend: Deploy to Render or Replit hosting with MongoDB Atlas.
+- CI/CD: GitHub Actions for linting, testing, and auto‑deploy on merge to `main`.
+
+---
+
+### 🧠 Ethics & Transparency
+- All biometric data must be public, opt‑in, or anonymized.
+- Include `/docs/ethics.md` explaining data sources and modeling logic.
+- Display responsible gaming disclaimer in footer.
+
+---
+
+Build this project in a modular way so contributors can easily add new metrics, mascots, or simulation logic without breaking existing features.
