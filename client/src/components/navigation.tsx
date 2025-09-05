@@ -7,7 +7,7 @@ import {
   NavigationMenuList,
 } from "@/components/ui/navigation-menu";
 import { cn } from "@/lib/utils";
-import { Menu, X, TrendingUp, Bell, Zap, Home } from "lucide-react";
+import { Menu, X, TrendingUp, Bell, Zap, Home, Target } from "lucide-react";
 import { useState } from "react";
 
 export function Navigation() {
@@ -26,6 +26,12 @@ export function Navigation() {
       href: "/week1",
       icon: TrendingUp,
       description: "Week 1 NFL betting lines"
+    },
+    {
+      name: "Strategy", 
+      href: "/strategy",
+      icon: Target,
+      description: "Personalized betting strategies"
     },
     {
       name: "Live Dashboard", 

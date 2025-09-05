@@ -3,10 +3,12 @@ import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import MatchupTable from "@/components/matchup-table";
 import NewsletterCTA from "@/components/newsletter-cta";
 import LoadingScreen from "@/components/loading-screen";
-import { Wifi, Calendar, Trophy } from "lucide-react";
+import { Wifi, Calendar, Trophy, Target, TrendingUp } from "lucide-react";
+import { Link } from "wouter";
 
 export default function Week1() {
   const [isLoading, setIsLoading] = useState(true);
@@ -184,6 +186,32 @@ export default function Week1() {
             transition={{ delay: 0.4 }}
             className="space-y-6"
           >
+            {/* Strategy Generator CTA */}
+            <Card className="bg-primary/10 border-primary/30">
+              <CardContent className="p-6">
+                <div className="text-center">
+                  <div className="text-3xl mb-3">🎯</div>
+                  <h3 className="text-lg font-bold text-foreground mb-2">
+                    Personalized Strategy
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Get AI-powered betting strategies tailored to your risk profile and preferences
+                  </p>
+                  
+                  <Link href="/strategy">
+                    <Button className="w-full bg-primary hover:bg-primary/80 text-primary-foreground">
+                      <Target className="w-4 h-4 mr-2" />
+                      Generate My Strategy
+                    </Button>
+                  </Link>
+                  
+                  <div className="mt-3 text-xs text-primary/70">
+                    🦍 Powered by BioBoost Intelligence
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Newsletter CTA */}
             <NewsletterCTA />
 
@@ -217,8 +245,19 @@ export default function Week1() {
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">BioBoost Ready:</span>
-                    <span className="font-semibold text-yellow-400">Soon 🍌</span>
+                    <span className="text-muted-foreground">BioBoost Scores:</span>
+                    <span className="font-semibold text-green-400">
+                      {displayGames.filter((g: any) => g.bioBoost?.score).length} Active
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Avg BioBoost:</span>
+                    <span className="font-semibold text-yellow-400">
+                      {displayGames.length > 0 
+                        ? Math.round(displayGames.reduce((sum: number, g: any) => sum + (g.bioBoost?.score || 50), 0) / displayGames.length)
+                        : '---'
+                      }
+                    </span>
                   </div>
                 </div>
               </CardContent>
