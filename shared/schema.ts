@@ -26,6 +26,9 @@ export const players = pgTable("players", {
   confidence: integer("confidence").notNull(),
   gameTime: text("game_time").notNull(),
   commentary: text("commentary"),
+  // Live betting odds integration
+  liveOdds: text("live_odds"), // JSON string of live odds data
+  recommendedBets: text("recommended_bets"), // JSON string of recommended betting opportunities
 });
 
 export const alerts = pgTable("alerts", {

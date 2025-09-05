@@ -62,7 +62,33 @@ export default function PlayerPickCard({ player }: PlayerPickCardProps) {
           <div className="text-4xl font-bold text-foreground mb-2" data-testid={`bet-line-${player.id}`}>
             {player.betLine}
           </div>
-          <div className="text-sm text-muted-foreground">Line</div>
+          <div className="text-sm text-muted-foreground">{player.betType}</div>
+          
+          {/* Live Odds Display */}
+          {player.liveOdds && Object.keys(player.liveOdds).length > 0 && (
+            <div className="mt-4 space-y-2">
+              <div className="text-xs text-primary font-semibold">🎰 LIVE ODDS</div>
+              {Object.entries(player.liveOdds).slice(0, 2).map(([market, bookmakers]: [string, any]) => (
+                <div key={market} className="bg-muted/20 rounded p-2">
+                  <div className="text-xs font-medium text-muted-foreground mb-1">
+                    {market.replace('_', ' ').toUpperCase()}
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    {Object.entries(bookmakers).slice(0, 3).map(([book, odds]: [string, any]) => (
+                      <div key={book} className="text-center">
+                        <div className="font-semibold text-primary">
+                          {Array.isArray(odds) ? odds[0]?.odds : odds?.odds}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {book.replace('draftkings', 'DK').replace('fanduel', 'FD').replace('betmgm', 'MGM')}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="mb-6">
@@ -114,6 +140,28 @@ export default function PlayerPickCard({ player }: PlayerPickCardProps) {
           </div>
         </div>
 
+        {/* Recommended Bets */}
+        {player.recommendedBets && player.recommendedBets.length > 0 && (
+          <div className="mb-4 p-3 bg-primary/10 rounded-lg border border-primary/20">
+            <div className="text-xs font-semibold text-primary mb-2">💰 VALUE BET ALERT</div>
+            {player.recommendedBets.slice(0, 1).map((bet: any, idx: number) => (
+              <div key={idx} className="text-sm">
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">
+                    {bet.market.replace('_', ' ').toUpperCase()} {bet.line > 0 ? 'OVER' : 'UNDER'} {Math.abs(bet.line)}
+                  </span>
+                  <span className="text-primary font-bold">
+                    {bet.odds > 0 ? '+' : ''}{bet.odds}
+                  </span>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {bet.edge}% Edge • {bet.confidence}% Confidence
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        
         <Button 
           className={`w-full ${buttonColor} text-white py-3 font-bold transition-colors`}
           data-testid={`button-lock-in-${player.id}`}

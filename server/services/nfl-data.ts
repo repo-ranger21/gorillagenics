@@ -416,15 +416,55 @@ export class NFLDataService {
         {
           params: {
             regions: 'us',
-            markets: 'h2h,spreads,totals',
+            markets: 'h2h,spreads,totals,alternate_spreads,alternate_totals',
             oddsFormat: 'american',
+            bookmakers: 'draftkings,fanduel,betmgm,caesars,pointsbet',
             apiKey: this.oddsApiKey
           }
         }
       );
+      console.log(`✅ Fetched live odds for ${response.data?.length || 0} NFL games`);
       return response.data || [];
     } catch (error) {
       console.error('Error fetching odds:', error);
+      return [];
+    }
+  }
+
+  async fetchLiveInGameOdds(): Promise<OddsAPIResponse[]> {
+    if (!this.oddsApiKey) {
+      console.warn('Odds API key not configured');
+      return [];
+    }
+
+    try {
+      // Get current week games that are live or upcoming
+      const games = await this.getCurrentWeekGames();
+      const liveGameIds = games.slice(0, 5).map(g => g.id);
+      
+      if (liveGameIds.length === 0) {
+        console.log('No live games found for in-game odds');
+        return [];
+      }
+      
+      const response = await axios.get(
+        `${this.oddsBaseUrl}/sports/americanfootball_nfl/odds`,
+        {
+          params: {
+            regions: 'us',
+            markets: 'h2h,spreads,totals',
+            oddsFormat: 'american',
+            bookmakers: 'draftkings,fanduel,betmgm',
+            eventIds: liveGameIds.join(','),
+            apiKey: this.oddsApiKey
+          }
+        }
+      );
+      
+      console.log(`✅ Fetched in-game odds for ${response.data?.length || 0} live NFL games`);
+      return response.data || [];
+    } catch (error) {
+      console.error('Error fetching live in-game odds:', error);
       return [];
     }
   }
@@ -441,17 +481,171 @@ export class NFLDataService {
         {
           params: {
             regions: 'us',
-            markets: 'player_pass_yds,player_rush_yds,player_receptions',
+            markets: 'player_pass_yds,player_rush_yds,player_receptions,player_pass_tds,player_rush_tds,player_receiving_yds,player_anytime_td',
             oddsFormat: 'american',
+            bookmakers: 'draftkings,fanduel,betmgm,caesars',
             apiKey: this.oddsApiKey
           }
         }
       );
+      console.log(`✅ Fetched ${response.data?.length || 0} games with player props`);
       return response.data || [];
     } catch (error) {
       console.error('Error fetching player props:', error);
       return [];
     }
+  }
+
+  async fetchEnhancedPlayerProps(): Promise<any[]> {
+    if (!this.oddsApiKey) {
+      console.warn('Odds API key not configured');
+      return [];
+    }
+
+    try {
+      // Get current week games for context
+      const games = await this.getCurrentWeekGames();
+      const gameIds = games.slice(0, 6).map(g => g.id);
+      
+      const allProps = [];
+      
+      // Fetch different prop markets in batches to avoid rate limits
+      const marketBatches = [
+        'player_pass_yds,player_pass_tds,player_pass_completions',
+        'player_rush_yds,player_rush_tds,player_rush_attempts', 
+        'player_receptions,player_receiving_yds,player_anytime_td'
+      ];
+      
+      for (const markets of marketBatches) {
+        try {
+          const response = await axios.get(
+            `${this.oddsBaseUrl}/sports/americanfootball_nfl/odds`,
+            {
+              params: {
+                regions: 'us',
+                markets,
+                oddsFormat: 'american',
+                bookmakers: 'draftkings,fanduel,betmgm',
+                eventIds: gameIds.slice(0, 3).join(','),
+                apiKey: this.oddsApiKey
+              }
+            }
+          );
+          
+          if (response.data && Array.isArray(response.data)) {
+            allProps.push(...response.data);
+          }
+          
+          // Rate limiting between requests
+          await this.sleep(300);
+        } catch (marketError) {
+          console.warn(`Error fetching markets ${markets}:`, marketError.message);
+        }
+      }
+      
+      console.log(`✅ Fetched ${allProps.length} enhanced player props from live odds API`);
+      return allProps;
+    } catch (error) {
+      console.error('Error fetching enhanced player props:', error);
+      return [];
+    }
+  }
+
+  parseAndEnhancePlayerOdds(oddsData: any[], players: any[]): any[] {
+    const enhancedPlayers = players.map(player => ({ ...player, liveOdds: {} }));
+    
+    for (const game of oddsData) {
+      if (!game.bookmakers || !Array.isArray(game.bookmakers)) continue;
+      
+      for (const bookmaker of game.bookmakers) {
+        if (!bookmaker.markets || !Array.isArray(bookmaker.markets)) continue;
+        
+        for (const market of bookmaker.markets) {
+          if (!market.outcomes || !Array.isArray(market.outcomes)) continue;
+          
+          for (const outcome of market.outcomes) {
+            // Match player by name (fuzzy matching)
+            const matchingPlayer = enhancedPlayers.find(p => 
+              outcome.description && 
+                this.fuzzyPlayerMatch(p.name, outcome.description)
+            );
+            
+            if (matchingPlayer) {
+              const marketKey = market.key.replace('player_', '');
+              
+              if (!matchingPlayer.liveOdds[marketKey]) {
+                matchingPlayer.liveOdds[marketKey] = {};
+              }
+              
+              if (!matchingPlayer.liveOdds[marketKey][bookmaker.key]) {
+                matchingPlayer.liveOdds[marketKey][bookmaker.key] = [];
+              }
+              
+              matchingPlayer.liveOdds[marketKey][bookmaker.key].push({
+                line: outcome.point || null,
+                odds: outcome.price,
+                name: outcome.name,
+                updated: new Date().toISOString()
+              });
+              
+              // Calculate BioBoost vs Market edge
+              const oddsValue = this.calculateOddsValue(matchingPlayer.bioBoostScore, {
+                odds: outcome.price,
+                line: outcome.point
+              });
+              
+              if (oddsValue && oddsValue.edge > 5) {
+                matchingPlayer.recommendedBets = matchingPlayer.recommendedBets || [];
+                matchingPlayer.recommendedBets.push({
+                  market: marketKey,
+                  bookmaker: bookmaker.key,
+                  line: outcome.point,
+                  odds: outcome.price,
+                  edge: oddsValue.edge,
+                  confidence: Math.min(95, matchingPlayer.bioBoostScore + oddsValue.edge)
+                });
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    return enhancedPlayers.filter(p => Object.keys(p.liveOdds).length > 0 || p.recommendedBets?.length > 0);
+  }
+
+  private fuzzyPlayerMatch(playerName: string, description: string): boolean {
+    const cleanName = playerName.toLowerCase().replace(/[^a-z\s]/g, '');
+    const cleanDesc = description.toLowerCase().replace(/[^a-z\s]/g, '');
+    
+    const nameParts = cleanName.split(' ');
+    return nameParts.some(part => 
+      part.length > 2 && cleanDesc.includes(part)
+    );
+  }
+
+  private calculateOddsValue(bioBoost: number, marketData: any): any {
+    if (!marketData || !marketData.odds) return null;
+    
+    // Convert American odds to implied probability
+    const getImpliedProb = (americanOdds: number) => {
+      if (americanOdds > 0) {
+        return 100 / (americanOdds + 100);
+      } else {
+        return Math.abs(americanOdds) / (Math.abs(americanOdds) + 100);
+      }
+    };
+    
+    // BioBoost to expected probability
+    const bioBoostProb = Math.max(0.4, Math.min(0.85, bioBoost / 100));
+    const impliedProb = getImpliedProb(marketData.odds);
+    const edge = (bioBoostProb - impliedProb) * 100;
+    
+    return edge > 3 ? {
+      edge: Math.round(edge * 10) / 10,
+      impliedProb: Math.round(impliedProb * 100),
+      bioBoostProb: Math.round(bioBoostProb * 100)
+    } : null;
   }
 
   // Calculate BioBoost score based on available metrics

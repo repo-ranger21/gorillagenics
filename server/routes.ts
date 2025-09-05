@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { nflDataService } from "./services/nfl-data";
 import { livePlayerService } from "./services/live-player-service";
+import { liveOddsService } from "./services/live-odds-service";
 import { dataScheduler } from "./services/data-scheduler";
 import { dataIntegrationService } from "./services/data-integration";
 import { webScrapingService } from "./services/web-scrapers";
@@ -10,12 +11,22 @@ import { webScrapingService } from "./services/web-scrapers";
 export async function registerRoutes(app: Express): Promise<Server> {
   // API routes for GuerillaGenics platform
 
-  // Get all players with BioBoost data (now with live NFL data)
+  // Get all players with BioBoost data and live betting odds
   app.get("/api/players", async (req, res) => {
     try {
-      const { refresh } = req.query;
+      const { refresh, withOdds } = req.query;
       const forceRefresh = refresh === 'true';
-      const players = await livePlayerService.refreshPlayerData(forceRefresh);
+      const includeOdds = withOdds === 'true';
+      
+      let players;
+      if (includeOdds) {
+        // Get players enhanced with live betting odds
+        players = await liveOddsService.integrateOddsWithPlayers();
+      } else {
+        // Get players without odds integration
+        players = await livePlayerService.refreshPlayerData(forceRefresh);
+      }
+      
       res.json(players);
     } catch (error) {
       console.error("Error fetching players:", error);
@@ -269,6 +280,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error refreshing live data:", error);
       res.status(500).json({ message: "Failed to refresh live data" });
+    }
+  });
+
+  // Live betting odds endpoints
+  app.get("/api/odds/live", async (req, res) => {
+    try {
+      const { refresh } = req.query;
+      const forceRefresh = refresh === 'true';
+      const oddsData = await liveOddsService.refreshLiveOdds(forceRefresh);
+      res.json(oddsData);
+    } catch (error) {
+      console.error("Error fetching live odds:", error);
+      res.status(500).json({ message: "Failed to fetch live odds" });
+    }
+  });
+
+  app.get("/api/odds/game-lines", async (req, res) => {
+    try {
+      const gameOdds = await liveOddsService.getGameOdds();
+      res.json(gameOdds);
+    } catch (error) {
+      console.error("Error fetching game lines:", error);
+      res.status(500).json({ message: "Failed to fetch game lines" });
+    }
+  });
+
+  app.get("/api/odds/best-bets", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      const bestBets = await liveOddsService.getBestBettingOpportunities(limit);
+      res.json(bestBets);
+    } catch (error) {
+      console.error("Error fetching best bets:", error);
+      res.status(500).json({ message: "Failed to fetch best betting opportunities" });
+    }
+  });
+
+  app.get("/api/odds/status", async (req, res) => {
+    try {
+      const oddsStatus = liveOddsService.getOddsStatus();
+      res.json({
+        status: "active",
+        odds: oddsStatus,
+        description: "Live betting odds integration active"
+      });
+    } catch (error) {
+      console.error("Error fetching odds status:", error);
+      res.status(500).json({ message: "Failed to fetch odds status" });
+    }
+  });
+
+  app.post("/api/odds/refresh", async (req, res) => {
+    try {
+      console.log('💰 Manual refresh requested for live betting odds');
+      const oddsData = await liveOddsService.refreshLiveOdds(true);
+      res.json({
+        message: "Live odds refreshed successfully",
+        gamesWithOdds: oddsData.gameOdds.length,
+        playerPropsAvailable: oddsData.playerProps.length
+      });
+    } catch (error) {
+      console.error("Error refreshing live odds:", error);
+      res.status(500).json({ message: "Failed to refresh live odds" });
     }
   });
 
