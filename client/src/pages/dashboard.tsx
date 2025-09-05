@@ -37,7 +37,7 @@ interface LiveAlert {
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<"over" | "under">("over");
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Fetch betting lines
   const { data: lines, isLoading: linesLoading } = useQuery<LineItem[]>({
@@ -51,11 +51,11 @@ export default function Dashboard() {
     refetchInterval: 10000, // Refresh every 10 seconds
   });
 
-  // Show loading screen briefly
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 2000);
-    return () => clearTimeout(timer);
-  }, []);
+  // Disabled loading screen for debugging
+  // useEffect(() => {
+  //   const timer = setTimeout(() => setIsLoading(false), 1000);
+  //   return () => clearTimeout(timer);
+  // }, []);
 
   const overBets = lines?.filter(line => line.recommendation === "Over") || [];
   const underBets = lines?.filter(line => line.recommendation === "Under") || [];
