@@ -22,6 +22,12 @@ export function Navigation() {
       description: "Return to landing page"
     },
     {
+      name: "Week 1 NFL", 
+      href: "/week1",
+      icon: TrendingUp,
+      description: "Week 1 NFL betting lines"
+    },
+    {
       name: "Live Dashboard", 
       href: "/dashboard",
       icon: TrendingUp,
@@ -82,7 +88,7 @@ export function Navigation() {
 
             {/* CTA Button */}
             <Button asChild className="bg-primary hover:bg-primary/90">
-              <Link href="/dashboard">
+              <Link href="/week1">
                 🦍 Enter the Jungle
               </Link>
             </Button>

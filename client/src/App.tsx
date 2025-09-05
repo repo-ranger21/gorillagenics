@@ -8,6 +8,7 @@ import Landing from "@/pages/landing";
 import Dashboard from "@/pages/dashboard";
 import DashboardWizard from "@/pages/dashboard-wizard";
 import NotificationsPage from "@/pages/notifications";
+import Week1 from "@/pages/week1";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -19,6 +20,7 @@ function Router() {
         <Route path="/dashboard" component={Dashboard} />
         <Route path="/wizard" component={DashboardWizard} />
         <Route path="/notifications" component={NotificationsPage} />
+        <Route path="/week1" component={Week1} />
         <Route component={NotFound} />
       </Switch>
     </>

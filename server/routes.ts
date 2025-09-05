@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer } from "ws";
 import { storage } from "./storage";
+import { week1Games } from "./week1Data.js";
 import { nflDataService } from "./services/nfl-data";
 import { livePlayerService } from "./services/live-player-service";
 import { liveOddsService } from "./services/live-odds-service";
@@ -93,6 +94,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching odds:", error);
       res.status(500).json({ message: "Failed to fetch odds" });
+    }
+  });
+
+  // Week 1 NFL Games endpoint
+  app.get('/api/week1', async (req, res) => {
+    try {
+      // Simulate live odds updates by slightly modifying spreads/totals
+      const gamesWithLiveOdds = week1Games.map(game => ({
+        ...game,
+        overUnder: game.overUnder + (Math.random() - 0.5) * 1, // ±0.5 variation
+        awayTeam: {
+          ...game.awayTeam,
+          spreadValue: game.awayTeam.spreadValue + (Math.random() - 0.5) * 0.5 // ±0.25 variation
+        },
+        homeTeam: {
+          ...game.homeTeam,
+          spreadValue: game.homeTeam.spreadValue + (Math.random() - 0.5) * 0.5 // ±0.25 variation
+        }
+      }));
+      
+      res.json(gamesWithLiveOdds);
+    } catch (error) {
+      console.error("Error fetching Week 1 games:", error);
+      res.status(500).json({ message: "Failed to fetch Week 1 games" });
     }
   });
 
