@@ -4,6 +4,7 @@ import BioBoostCard from "@/components/bio-boost-card";
 import PlayerPickCard from "@/components/player-pick-card";
 import JuiceWatchAlerts from "@/components/juice-watch-alerts";
 import PerformanceHeatmap from "@/components/performance-heatmap";
+import PersonalizedRecommendations from "@/components/personalized-recommendations";
 import { bioMetrics } from "@/data/mock-data";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -59,6 +60,9 @@ export default function Landing() {
               </a>
               <a href="#picks" className="text-muted-foreground hover:text-foreground transition-colors">
                 Picks
+              </a>
+              <a href="#recommendations" className="text-muted-foreground hover:text-foreground transition-colors">
+                Personal
               </a>
               <a href="#heatmap" className="text-muted-foreground hover:text-foreground transition-colors">
                 Heatmap
@@ -268,6 +272,34 @@ export default function Landing() {
               </CardContent>
             </Card>
           </motion.div>
+        </div>
+      </section>
+
+      {/* Personalized Recommendations Section */}
+      <section id="recommendations" className="py-20 bg-gradient-to-br from-accent/5 to-background">
+        <div className="container mx-auto px-6">
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+            className="text-center mb-16"
+          >
+            <h2 className="text-4xl md:text-5xl font-bold mb-6 text-foreground">
+              🎯 Your Personal Picks
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+              AI-powered recommendations tailored to your betting style, risk tolerance, and favorite teams.
+            </p>
+          </motion.div>
+
+          {playersLoading ? (
+            <div className="text-center py-8">
+              <div className="animate-pulse text-muted-foreground">Generating personalized recommendations...</div>
+            </div>
+          ) : (
+            <PersonalizedRecommendations players={players} />
+          )}
         </div>
       </section>
 

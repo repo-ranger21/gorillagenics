@@ -6,6 +6,17 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
+  // Personalization fields
+  preferredBetTypes: text("preferred_bet_types"), // JSON array of bet types
+  riskTolerance: text("risk_tolerance").default('medium'), // low, medium, high
+  favoriteTeams: text("favorite_teams"), // JSON array of team names
+  bankrollSize: integer("bankroll_size").default(100), // Default $100
+  maxBetSize: integer("max_bet_size").default(10), // Default $10
+  winRate: real("win_rate").default(0.5), // Track success rate
+  totalBets: integer("total_bets").default(0),
+  preferences: text("preferences"), // JSON object for additional preferences
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const players = pgTable("players", {

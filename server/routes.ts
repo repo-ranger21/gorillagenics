@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { nflDataService } from "./services/nfl-data";
 import { livePlayerService } from "./services/live-player-service";
 import { liveOddsService } from "./services/live-odds-service";
+import { RecommendationEngine, type UserProfile } from "./services/recommendation-engine";
 import { dataScheduler } from "./services/data-scheduler";
 import { dataIntegrationService } from "./services/data-integration";
 import { webScrapingService } from "./services/web-scrapers";
@@ -359,6 +360,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error running Super Bowl simulation:", error);
       res.status(500).json({ message: "Failed to run simulation" });
+    }
+  });
+
+  // Personalized recommendations endpoint
+  app.get("/api/recommendations", async (req, res) => {
+    try {
+      console.log('🎯 Generating personalized betting recommendations...');
+      
+      // Get current players data
+      const players = await livePlayerService.getAllPlayers();
+      
+      // Sample user profile (in production, this would come from user session/database)
+      const sampleProfile: UserProfile = RecommendationEngine.generateSampleUserProfile();
+      
+      // Generate personalized recommendations
+      const recommendations = RecommendationEngine.generatePersonalizedRecommendations(
+        players,
+        sampleProfile
+      );
+      
+      console.log(`✅ Generated ${recommendations.length} personalized recommendations`);
+      
+      res.json({
+        recommendations,
+        userProfile: sampleProfile,
+        totalPlayers: players.length,
+        generatedAt: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Error generating recommendations:", error);
+      res.status(500).json({ message: "Failed to generate recommendations" });
+    }
+  });
+
+  // User profile endpoint
+  app.get("/api/user/profile", async (req, res) => {
+    try {
+      // In production, get from authenticated user session
+      const profile = RecommendationEngine.generateSampleUserProfile();
+      res.json(profile);
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+      res.status(500).json({ message: "Failed to fetch user profile" });
+    }
+  });
+
+  // Update user profile endpoint
+  app.put("/api/user/profile", async (req, res) => {
+    try {
+      const updatedProfile = req.body;
+      console.log('👤 Updated user profile:', updatedProfile);
+      // In production, save to database and validate
+      res.json({ success: true, profile: updatedProfile });
+    } catch (error) {
+      console.error("Error updating user profile:", error);
+      res.status(500).json({ message: "Failed to update user profile" });
     }
   });
 
