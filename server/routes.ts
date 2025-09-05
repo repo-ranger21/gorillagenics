@@ -3,6 +3,8 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { nflDataService } from "./services/nfl-data";
 import { dataScheduler } from "./services/data-scheduler";
+import { dataIntegrationService } from "./services/data-integration";
+import { webScrapingService } from "./services/web-scrapers";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API routes for GuerillaGenics platform
@@ -124,6 +126,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error(`Error fetching stats for player ${req.params.playerId}:`, error);
       res.status(500).json({ message: "Failed to fetch player stats" });
+    }
+  });
+
+  // Enhanced player data with integrated sources
+  app.get("/api/players/enhanced", async (req, res) => {
+    try {
+      const facebookToken = req.query.facebook_token as string;
+      const enrichedPlayers = await dataIntegrationService.fetchAndIntegrateAllData(facebookToken);
+      res.json(enrichedPlayers);
+    } catch (error) {
+      console.error("Error fetching enhanced player data:", error);
+      res.status(500).json({ message: "Failed to fetch enhanced player data" });
+    }
+  });
+
+  // Live injury reports
+  app.get("/api/scraping/injuries", async (req, res) => {
+    try {
+      const injuries = await webScrapingService.scrapeNFLInjuries();
+      res.json(injuries);
+    } catch (error) {
+      console.error("Error scraping injury data:", error);
+      res.status(500).json({ message: "Failed to scrape injury data" });
+    }
+  });
+
+  // DFS lines from DraftKings
+  app.get("/api/scraping/dfs-lines", async (req, res) => {
+    try {
+      const lines = await webScrapingService.scrapeDraftKingsLines();
+      res.json(lines);
+    } catch (error) {
+      console.error("Error scraping DFS lines:", error);
+      res.status(500).json({ message: "Failed to scrape DFS lines" });
+    }
+  });
+
+  // Player props from FanDuel
+  app.get("/api/scraping/player-props", async (req, res) => {
+    try {
+      const props = await webScrapingService.scrapeFanDuelProps();
+      res.json(props);
+    } catch (error) {
+      console.error("Error scraping player props:", error);
+      res.status(500).json({ message: "Failed to scrape player props" });
+    }
+  });
+
+  // Biometric cues from social media
+  app.get("/api/scraping/biometric-cues", async (req, res) => {
+    try {
+      const token = req.query.facebook_token as string;
+      const cues = await webScrapingService.fetchFacebookBiometricCues(token);
+      res.json(cues);
+    } catch (error) {
+      console.error("Error fetching biometric cues:", error);
+      res.status(500).json({ message: "Failed to fetch biometric cues" });
     }
   });
 

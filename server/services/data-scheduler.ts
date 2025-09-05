@@ -1,5 +1,6 @@
 import cron from 'node-cron';
 import { nflDataService } from './nfl-data';
+import { dataIntegrationService } from './data-integration';
 import { storage } from '../storage';
 
 export class DataScheduler {
@@ -15,6 +16,12 @@ export class DataScheduler {
     cron.schedule('*/15 1-23 * * 0', async () => {
       console.log('🏈 Updating player stats...');
       await this.updatePlayerStats();
+    });
+
+    // Full data integration every hour (combines all sources)
+    cron.schedule('0 * * * *', async () => {
+      console.log('🦍 Running full data integration...');
+      await this.runFullDataIntegration();
     });
 
     // Update injury reports every 2 hours
@@ -83,6 +90,37 @@ export class DataScheduler {
     }
   }
 
+  private async runFullDataIntegration() {
+    try {
+      // Get Facebook token from environment if available
+      const facebookToken = process.env.FACEBOOK_ACCESS_TOKEN;
+      
+      // Run comprehensive data integration
+      const enrichedPlayers = await dataIntegrationService.fetchAndIntegrateAllData(facebookToken);
+      
+      // Update players in storage with enriched data
+      for (const player of enrichedPlayers) {
+        await storage.updatePlayer(player.id, {
+          bioBoostScore: player.bioBoostScore,
+          sleepScore: player.sleepScore,
+          testosteroneProxy: player.testosteroneProxy,
+          cortisolProxy: player.cortisolProxy,
+          hydrationLevel: player.hydrationLevel,
+          injuryRecoveryDays: player.injuryRecoveryDays,
+          recommendedPick: player.recommendedPick,
+          confidence: player.confidence
+        });
+        
+        // Generate alerts for significant changes
+        await this.checkPlayerForAlerts(player);
+      }
+      
+      console.log(`✅ Successfully integrated data for ${enrichedPlayers.length} players`);
+    } catch (error) {
+      console.error('Error in full data integration:', error);
+    }
+  }
+
   private async updateInjuryReports() {
     try {
       const injuryReports = await nflDataService.fetchInjuryReport();
@@ -132,6 +170,48 @@ export class DataScheduler {
   private async generateBioBoostAlerts() {
     // Generate alerts based on BioBoost changes
     return [];
+  }
+
+  private async checkPlayerForAlerts(player: any) {
+    try {
+      // Check for significant BioBoost changes
+      if (player.bioBoostScore >= 85) {
+        await storage.createAlert({
+          playerName: player.name,
+          team: player.team,
+          metricType: 'BioBoost',
+          previousValue: 75, // Would track previous value
+          currentValue: player.bioBoostScore,
+          commentary: `🦍 FULL BANANAS! ${player.name} is showing elite BioBoost metrics. Alpha ape energy detected!`
+        });
+      }
+      
+      // Check injury status changes
+      if (player.injuryRecoveryDays > 7) {
+        await storage.createAlert({
+          playerName: player.name,
+          team: player.team,
+          metricType: 'Injury',
+          previousValue: 0,
+          currentValue: player.injuryRecoveryDays,
+          commentary: `🏥 Gorilla down! ${player.name} showing extended recovery timeline.`
+        });
+      }
+      
+      // Check sleep score alerts
+      if (player.sleepScore <= 40) {
+        await storage.createAlert({
+          playerName: player.name,
+          team: player.team,
+          metricType: 'Sleep',
+          previousValue: 70,
+          currentValue: player.sleepScore,
+          commentary: `😴 Sleepy gorilla alert! ${player.name} needs more jungle rest.`
+        });
+      }
+    } catch (error) {
+      console.error('Error generating player alerts:', error);
+    }
   }
 
   private sleep(ms: number): Promise<void> {
