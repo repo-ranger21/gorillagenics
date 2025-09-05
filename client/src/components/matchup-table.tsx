@@ -30,7 +30,14 @@ interface Game {
   bioBoost: {
     score: number | null;
     recommendation: string | null;
-    confidence: number | null;
+    confidence: string | null;
+    commentary: string | null;
+    factors?: {
+      injury: any;
+      weather: any;
+      lineMovement: any;
+      rest: any;
+    };
   };
 }
 

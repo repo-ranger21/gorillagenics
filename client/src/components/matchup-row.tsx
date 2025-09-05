@@ -31,7 +31,14 @@ interface Game {
   bioBoost: {
     score: number | null;
     recommendation: string | null;
-    confidence: number | null;
+    confidence: string | null;
+    commentary: string | null;
+    factors?: {
+      injury: any;
+      weather: any;
+      lineMovement: any;
+      rest: any;
+    };
   };
 }
 
@@ -164,17 +171,33 @@ export default function MatchupRow({ game }: MatchupRowProps) {
               </div>
             </div>
 
-            {/* BioBoost Placeholder */}
+            {/* BioBoost Score */}
             <div className="text-center p-3 bg-gradient-to-br from-yellow-500/20 to-primary/20 rounded-lg border border-yellow-500/30">
               <div className="text-xs text-yellow-400 uppercase tracking-wide mb-1">BioBoost</div>
               <div className="font-bold">
-                {game.bioBoost.score ? (
+                {game.bioBoost.score !== null ? (
                   <>
-                    <div className="text-yellow-400">{game.bioBoost.score}</div>
-                    <div className="text-xs text-muted-foreground mt-1">{game.bioBoost.recommendation}</div>
+                    <div className={`text-xl ${
+                      game.bioBoost.score > 65 ? 'text-green-400' :
+                      game.bioBoost.score < 35 ? 'text-red-400' : 'text-yellow-400'
+                    }`}>
+                      {game.bioBoost.score}
+                    </div>
+                    <div className="text-xs font-semibold mt-1">
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        game.bioBoost.recommendation === 'OVER' 
+                          ? 'bg-green-500/20 text-green-400' 
+                          : 'bg-red-500/20 text-red-400'
+                      }`}>
+                        {game.bioBoost.recommendation}
+                      </span>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {game.bioBoost.confidence} Confidence
+                    </div>
                   </>
                 ) : (
-                  <div className="text-yellow-400/60">🦍 TBD</div>
+                  <div className="text-yellow-400/60">🦍 Loading...</div>
                 )}
               </div>
             </div>
@@ -222,12 +245,36 @@ export default function MatchupRow({ game }: MatchupRowProps) {
                 </div>
               </div>
 
-              {/* Primal Insight */}
-              <div>
-                <div className="text-muted-foreground mb-2">🍌 Jungle Insight</div>
-                <div className="text-primary/80 text-xs">
-                  Live odds and primal analytics loading...
+              {/* Gorilla Commentary */}
+              <div className="md:col-span-2">
+                <div className="text-muted-foreground mb-2">🍌 Gorilla Commentary</div>
+                <div className="text-primary/90 text-sm italic bg-primary/10 p-3 rounded-lg border border-primary/20">
+                  {game.bioBoost.commentary || "🦍 Gorilla analyzing the jungle intel..."}
                 </div>
+                
+                {/* BioBoost Factors */}
+                {game.bioBoost.factors && (
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Weather:</span>
+                      <span className={`${
+                        game.bioBoost.factors.weather.wind > 15 ? 'text-red-400' :
+                        game.bioBoost.factors.weather.dome ? 'text-green-400' : 'text-yellow-400'
+                      }`}>
+                        {game.bioBoost.factors.weather.dome ? 'Dome' : 
+                         game.bioBoost.factors.weather.wind > 15 ? 'Windy' : 'Good'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Injuries:</span>
+                      <span className={`${
+                        game.bioBoost.factors.injury.quarterback ? 'text-red-400' : 'text-green-400'
+                      }`}>
+                        {game.bioBoost.factors.injury.quarterback ? 'QB Issue' : 'Healthy'}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </motion.div>

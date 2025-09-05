@@ -97,24 +97,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Week 1 NFL Games endpoint
+  // Week 1 NFL Games endpoint with BioBoost calculations
   app.get('/api/week1', async (req, res) => {
     try {
-      // Simulate live odds updates by slightly modifying spreads/totals
-      const gamesWithLiveOdds = week1Games.map(game => ({
-        ...game,
-        overUnder: game.overUnder + (Math.random() - 0.5) * 1, // ±0.5 variation
-        awayTeam: {
-          ...game.awayTeam,
-          spreadValue: game.awayTeam.spreadValue + (Math.random() - 0.5) * 0.5 // ±0.25 variation
-        },
-        homeTeam: {
-          ...game.homeTeam,
-          spreadValue: game.homeTeam.spreadValue + (Math.random() - 0.5) * 0.5 // ±0.25 variation
-        }
-      }));
+      // Import BioBoost calculator
+      const { calculateBioBoost, generateRecommendation, generateGorillaCommentary, generateMockGameFactors } = await import('./utils/bioBoostCalculator.js');
       
-      res.json(gamesWithLiveOdds);
+      // Simulate live odds updates and calculate BioBoost scores
+      const gamesWithBioBoost = week1Games.map(game => {
+        // Generate mock factors for BioBoost calculation
+        const factors = generateMockGameFactors(game.id);
+        
+        // Calculate BioBoost score (0-100)
+        const bioBoostScore = calculateBioBoost({
+          ...game,
+          ...factors
+        });
+        
+        // Generate recommendation
+        const { recommendation, confidence } = generateRecommendation(bioBoostScore, game.overUnder);
+        
+        // Generate satirical commentary
+        const commentary = generateGorillaCommentary(game, bioBoostScore, recommendation);
+        
+        // Simulate live odds updates
+        const liveGame = {
+          ...game,
+          overUnder: game.overUnder + (Math.random() - 0.5) * 1, // ±0.5 variation
+          awayTeam: {
+            ...game.awayTeam,
+            spreadValue: game.awayTeam.spreadValue + (Math.random() - 0.5) * 0.5 // ±0.25 variation
+          },
+          homeTeam: {
+            ...game.homeTeam,
+            spreadValue: game.homeTeam.spreadValue + (Math.random() - 0.5) * 0.5 // ±0.25 variation
+          },
+          bioBoost: {
+            score: bioBoostScore,
+            recommendation: recommendation,
+            confidence: confidence,
+            commentary: commentary,
+            factors: {
+              injury: factors.injuries,
+              weather: factors.weather,
+              lineMovement: factors.lineMovement,
+              rest: factors.restDays
+            }
+          }
+        };
+        
+        return liveGame;
+      });
+      
+      res.json(gamesWithBioBoost);
     } catch (error) {
       console.error("Error fetching Week 1 games:", error);
       res.status(500).json({ message: "Failed to fetch Week 1 games" });
