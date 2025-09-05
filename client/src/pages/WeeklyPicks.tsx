@@ -25,8 +25,16 @@ import {
   fetchNFLSchedule
 } from "@/utils/weekFetcher";
 
-// Data
-import { WEEK_1_SCHEDULE, TIME_SLOT_NAMES, TIME_SLOT_ORDER } from "../../server/weeklyPicksData";
+// Data constants - will be fetched from API
+const TIME_SLOT_NAMES = {
+  'thursday': 'Thursday Night Football',
+  'friday': 'International Game', 
+  'sunday_early': 'Sunday Early Games',
+  'sunday_late': 'Sunday Late Games',
+  'snf': 'Sunday Night Football',
+  'mnf': 'Monday Night Football'
+};
+const TIME_SLOT_ORDER = ['thursday', 'friday', 'sunday_early', 'sunday_late', 'snf', 'mnf'];
 
 export default function WeeklyPicks() {
   const [currentWeek, setCurrentWeek] = useState(1);
@@ -80,25 +88,12 @@ export default function WeeklyPicks() {
 
   const loadWeekData = async (weekNumber, useCache = false) => {
     try {
-      if (weekNumber === 1) {
-        // Use pre-loaded Week 1 data
-        setWeekData(WEEK_1_SCHEDULE);
-        setLastUpdated(new Date());
-        return;
+      // Fetch week data from API
+      const response = await fetch(`/api/weekly-picks/${weekNumber}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch week ${weekNumber} data`);
       }
-
-      if (useCache) {
-        // Try cached data first
-        const cached = localStorage.getItem(`picks_week_${weekNumber}`);
-        if (cached) {
-          setWeekData(JSON.parse(cached));
-          setLastUpdated(new Date(JSON.parse(cached).lastUpdated || Date.now()));
-          return;
-        }
-      }
-
-      // Fetch from API for future weeks
-      const schedule = await fetchNFLSchedule(weekNumber);
+      const schedule = await response.json();
       setWeekData(schedule);
       setLastUpdated(new Date());
       
@@ -107,6 +102,18 @@ export default function WeeklyPicks() {
         data: schedule,
         lastUpdated: new Date().toISOString()
       }));
+      return;
+
+      if (useCache) {
+        // Try cached data first
+        const cached = localStorage.getItem(`picks_week_${weekNumber}`);
+        if (cached) {
+          const cachedData = JSON.parse(cached);
+          setWeekData(cachedData.data || []);
+          setLastUpdated(new Date(cachedData.lastUpdated || Date.now()));
+          return;
+        }
+      }
       
     } catch (err) {
       console.error(`Failed to load week ${weekNumber} data:`, err);

@@ -176,6 +176,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Weekly Picks API endpoints
+  app.get('/api/weekly-picks/:week', async (req, res) => {
+    try {
+      const week = parseInt(req.params.week);
+      
+      if (week === 1) {
+        // Import and serve Week 1 data
+        const { WEEK_1_SCHEDULE } = await import('./weeklyPicksData.js');
+        res.json(WEEK_1_SCHEDULE);
+      } else {
+        // For future weeks, return empty array
+        res.json([]);
+      }
+    } catch (error) {
+      console.error('Error fetching weekly picks:', error);
+      res.status(500).json({ message: 'Failed to fetch weekly picks' });
+    }
+  });
+
+  app.get('/api/current-week', (req, res) => {
+    const seasonStart = new Date('2025-09-04');
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - seasonStart.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const currentWeek = Math.min(18, Math.max(1, Math.floor(diffDays / 7) + 1));
+    
+    res.json({ 
+      currentWeek,
+      seasonStart: seasonStart.toISOString(),
+      calculatedAt: now.toISOString()
+    });
+  });
+
   // Player props and betting lines
   app.get("/api/nfl/player-props", async (req, res) => {
     try {
