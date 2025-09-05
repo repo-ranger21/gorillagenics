@@ -11,6 +11,7 @@ import NotificationsPage from "@/pages/notifications";
 import Week1 from "@/pages/week1";
 import Strategy from "@/pages/strategy";
 import RiskHeatmapPage from "@/pages/risk-heatmap";
+import ChallengesPage from "@/pages/challenges";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -25,6 +26,7 @@ function Router() {
         <Route path="/week1" component={Week1} />
         <Route path="/strategy" component={Strategy} />
         <Route path="/risk-heatmap" component={RiskHeatmapPage} />
+        <Route path="/challenges" component={ChallengesPage} />
         <Route component={NotFound} />
       </Switch>
     </>
