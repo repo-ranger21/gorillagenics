@@ -38,7 +38,7 @@ const TIME_SLOT_ORDER = ['thursday', 'friday', 'sunday_early', 'sunday_late', 's
 
 export default function WeeklyPicks() {
   const [currentWeek, setCurrentWeek] = useState(1);
-  const [weekData, setWeekData] = useState([]);
+  const [weekData, setWeekData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState('all');
@@ -73,7 +73,7 @@ export default function WeeklyPicks() {
       
     } catch (err) {
       console.error('Failed to initialize weekly picks:', err);
-      setError(err);
+      setError((err as Error).message || 'Failed to initialize');
       
       // Try to load stored data as fallback
       const stored = getStoredWeek();
@@ -86,7 +86,7 @@ export default function WeeklyPicks() {
     }
   };
 
-  const loadWeekData = async (weekNumber, useCache = false) => {
+  const loadWeekData = async (weekNumber: number, useCache = false) => {
     try {
       // Fetch week data from API
       const response = await fetch(`/api/weekly-picks/${weekNumber}`);
@@ -121,7 +121,7 @@ export default function WeeklyPicks() {
     }
   };
 
-  const handleWeekChange = async (newWeek) => {
+  const handleWeekChange = async (newWeek: number) => {
     if (newWeek === currentWeek) return;
     
     setIsLoading(true);
@@ -133,7 +133,7 @@ export default function WeeklyPicks() {
       setActiveFilter('all');
       storeCurrentWeek(newWeek);
     } catch (err) {
-      setError(err);
+      setError((err as Error).message || 'Failed to change week');
     } finally {
       setIsLoading(false);
     }
@@ -150,12 +150,12 @@ export default function WeeklyPicks() {
   // Filter games by time slot
   const getFilteredGames = () => {
     if (activeFilter === 'all') return weekData;
-    return weekData.filter(game => game.timeSlot === activeFilter);
+    return weekData.filter((game: any) => game.timeSlot === activeFilter);
   };
 
   // Group games by time slot for display
-  const groupedGames = TIME_SLOT_ORDER.reduce((acc, slot) => {
-    const games = weekData.filter(game => game.timeSlot === slot);
+  const groupedGames = TIME_SLOT_ORDER.reduce((acc: any, slot) => {
+    const games = weekData.filter((game: any) => game.timeSlot === slot);
     if (games.length > 0) {
       acc[slot] = games;
     }
@@ -164,9 +164,14 @@ export default function WeeklyPicks() {
 
   // Calculate summary stats
   const totalGames = weekData.length;
-  const highConfidencePicks = weekData.filter(game => game.confidence === 'HIGH').length;
+  const highConfidencePicks = weekData.filter((game: any) => game.winnerConfidence === 'HIGH').length;
   const avgBioBoost = weekData.length > 0 
-    ? Math.round(weekData.reduce((sum, game) => sum + Math.max(game.away.bioBoost, game.home.bioBoost), 0) / weekData.length)
+    ? Math.round(weekData.reduce((sum: number, game: any) => {
+        // Handle different possible data structures
+        const homeBioBoost = game.home?.bioBoost || game.homeBioBoost || 75;
+        const awayBioBoost = game.away?.bioBoost || game.awayBioBoost || 75;
+        return sum + Math.max(homeBioBoost, awayBioBoost);
+      }, 0) / weekData.length)
     : 0;
 
   if (isLoading && weekData.length === 0) {
@@ -336,17 +341,19 @@ export default function WeeklyPicks() {
                       <div className="flex items-center gap-3">
                         <div className="h-0.5 bg-primary/20 flex-1" />
                         <h3 className="text-lg font-semibold text-primary">
-                          {TIME_SLOT_NAMES[slot]}
+                          {TIME_SLOT_NAMES[slot as keyof typeof TIME_SLOT_NAMES]}
                         </h3>
                         <div className="h-0.5 bg-primary/20 flex-1" />
                       </div>
                       
                       <div className="grid gap-4">
-                        {games.map((game, index) => (
+                        {(games as any[]).map((game: any, index: number) => (
                           <WeeklyPickCard 
-                            key={game.id}
+                            key={game.gameId || `game-${index}`}
                             game={game}
                             index={index}
+                            showDetails={false}
+                            onToggleDetails={() => {}}
                           />
                         ))}
                       </div>
@@ -361,11 +368,13 @@ export default function WeeklyPicks() {
                   animate={{ opacity: 1, x: 0 }}
                   className="grid gap-4"
                 >
-                  {getFilteredGames().map((game, index) => (
+                  {getFilteredGames().map((game: any, index: number) => (
                     <WeeklyPickCard 
-                      key={game.id}
+                      key={game.gameId || `filtered-${index}`}
                       game={game}
                       index={index}
+                      showDetails={false}
+                      onToggleDetails={() => {}}
                     />
                   ))}
                 </motion.div>
