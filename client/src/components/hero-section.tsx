@@ -67,7 +67,7 @@ export default function HeroSection() {
           <Button 
             className="bg-primary text-primary-foreground px-8 py-4 text-lg font-bold hover:bg-primary/90 transition-all transform hover:scale-105 animate-pulse-glow"
             data-testid="button-enter-jungle-hero"
-            onClick={() => scrollToSection('dashboard')}
+            onClick={() => window.location.href = '/dashboard'}
           >
             🦍 Enter the Jungle
           </Button>
