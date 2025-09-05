@@ -7,7 +7,7 @@ import {
   NavigationMenuList,
 } from "@/components/ui/navigation-menu";
 import { cn } from "@/lib/utils";
-import { Menu, X, TrendingUp, Bell, Zap, Home, Target, Brain, Trophy } from "lucide-react";
+import { Menu, X, TrendingUp, Bell, Zap, Home, Target, Brain, Trophy, Calendar } from "lucide-react";
 import { useState } from "react";
 
 export function Navigation() {
@@ -44,6 +44,12 @@ export function Navigation() {
       href: "/challenges",
       icon: Trophy,
       description: "Social betting challenges"
+    },
+    {
+      name: "Weekly Picks",
+      href: "/weekly-picks",
+      icon: Calendar,
+      description: "GuerillaGenics weekly NFL picks"
     },
     {
       name: "Live Dashboard", 

@@ -1,0 +1,127 @@
+GuerillaGenics “Weekly Picks” with Auto‑Rollover + Week Fetcher Utility
+
+Enhance the existing GuerillaGenics web app (https://guerillagenics.app/) by adding a new “Weekly Picks” feature that displays GuerillaGenics’ proprietary NFL picks for the current week, starting with the 2025–26 Week 1 slate, and automatically updates to the next week’s matchups every Tuesday. Include a `weekFetcher.js` utility to handle schedule API calls, rollover logic, and merging BioBoost picks.
+
+---
+
+🎯 **Core Requirements**
+
+1. **Navigation & Access**
+   - Add a “Weekly Picks” link/button to main navigation or dashboard.
+   - Route: `/weekly-picks`
+   - Clicking loads a dedicated page with current week’s matchups, BioBoost scores, and predicted winners.
+
+2. **Weekly Picks Page Layout**
+   - **Header:** “GuerillaGenics — Weekly Picks” + tagline “Bet Smarter. Go Primal.”
+   - **Week Selector:** Dropdown or arrows to navigate between NFL weeks (default to current week).
+   - **Matchup Cards/Table:** For each game:
+     - Date & Time (ET)
+     - Teams (away @ home)
+     - Point Spread
+     - Over/Under total
+     - GuerillaGenics **BioBoost Score** (0–100)
+     - Predicted Winner (highlighted with mascot emoji)
+     - Short satirical commentary
+   - **Filters:** All games | Thursday | Friday | Sunday Early | Sunday Late | SNF | MNF
+   - **Live Odds Updates:** Simulate via mock WebSocket feed
+   - **Newsletter CTA:** $10/month Substack signup in sidebar
+   - **Disclaimer:** Persistent responsible betting notice
+
+3. **Week 1 Data (Pre‑loaded)**
+   - Use the GuerillaGenics Week 1 picks and BioBoost scores provided earlier as static defaults.
+
+4. **BioBoost Calculation**
+   - Include `bioBoostCalculator.js` utility to compute scores from:
+     - Injury status
+     - Weather impact
+     - Line movement
+     - Rest/travel factors
+   - For Week 1, use provided static scores.
+
+5. **Automation: Weekly Rollover**
+   - Integrate with a public NFL schedule API (e.g., MySportsFeeds, TheSportsDB, or similar).
+   - On page load:
+     - Determine current NFL week based on today’s date.
+     - If Tuesday 12:00 AM ET or later, switch to next week’s matchups.
+     - Fetch matchups for that week from API.
+     - Merge in GuerillaGenics BioBoost picks if available; otherwise, mark as “TBD.”
+   - Cache last‑fetched week in localStorage to reduce API calls.
+   - Allow manual override via Week Selector.
+
+6. **Branded Loading & Fallback**
+   - Show gorilla mascot animation with “🦍 Peeling the data bananas…” while loading.
+   - If API fails, show last‑known cached picks or “Data is swinging in late — check back soon!” + newsletter signup.
+
+---
+
+📦 **Folder Structure Additions**
+
+
+/src/pages WeeklyPicks.jsx /src/components WeeklyPickCard.jsx WeekSelector.jsx NewsletterCTA.jsx LoadingScreen.jsx FallbackContent.jsx /src/utils bioBoostCalculator.js weekFetcher.js /server weeklyPicksData.js
+
+
+---
+
+🧮 **`weekFetcher.js` Utility Logic**
+```js
+// src/utils/weekFetcher.js
+export async function getCurrentWeekData({ apiKey, baseUrl, staticWeek1 }) {
+  const today = new Date();
+  const currentDay = today.getUTCDay(); // 0=Sun, 1=Mon...
+  const currentHour = today.getUTCHours();
+
+  // Determine NFL week number (simplified: adjust based on season start date)
+  const seasonStart = new Date(Date.UTC(2025, 8, 4, 0, 0, 0)); // Sept 4, 2025
+  const daysSinceStart = Math.floor((today - seasonStart) / (1000 * 60 * 60 * 24));
+  let weekNumber = Math.floor(daysSinceStart / 7) + 1;
+
+  // Auto-rollover on Tuesday 12:00 AM ET
+  const isTuesdayOrLater = (currentDay > 2) || (currentDay === 2 && currentHour >= 4);
+  if (isTuesdayOrLater) weekNumber += 1;
+
+  // Week 1 fallback
+  if (weekNumber <= 1) return staticWeek1;
+
+  try {
+    const res = await fetch(`${baseUrl}/nfl/2025/week/${weekNumber}`, {
+      headers: { 'Authorization': `Bearer ${apiKey}` }
+    });
+    if (!res.ok) throw new Error("API error");
+    const data = await res.json();
+    return data.matchups.map(m => ({
+      date: m.date,
+      time: m.time,
+      away: m.awayTeam,
+      home: m.homeTeam,
+      spread: m.spread,
+      total: m.overUnder,
+      bioBoost: null, // placeholder until computed
+      pick: null
+    }));
+  } catch (err) {
+    console.error("Week fetch failed", err);
+    return staticWeek1; // fallback to Week 1 data
+  }
+}
+
+
+---
+
+🧪 Acceptance Criteria
+
+• “Weekly Picks” link visible and functional from main site
+• Page loads with branded loading screen, then displays current week’s picks
+• Each matchup shows spread, total, BioBoost score, predicted winner, and commentary
+• Live odds simulate via WebSocket updates
+• Every Tuesday at 12:00 AM ET, page automatically switches to next week’s matchups
+• Manual week navigation works via Week Selector
+• Fallback content + cached data appear if API fails
+• Newsletter signup visible in sidebar and fallback state
+• Progressive rendering: shell visible instantly, data fills in as ready
+• All styles match jungle/mascot brand
+
+
+---
+
+Deliver a complete, runnable enhancement to guerillagenics.app with the new “Weekly Picks” feature fully integrated, automated weekly rollover, and ready to swap to live data feeds.
+
