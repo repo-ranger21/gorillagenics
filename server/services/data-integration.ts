@@ -255,14 +255,14 @@ export class DataIntegrationService {
     if (cues.length === 0) return 50; // Neutral
     
     let sentimentScore = 0;
-    const moodWeights = {
+    const moodWeights: Record<string, number> = {
       'great': 20, 'good': 10, 'pumped': 25, 'energized': 20, 'ready': 15,
       'tired': -10, 'exhausted': -20, 'sore': -15, 'hurt': -25
     };
     
     for (const cue of cues) {
       const mood = cue.extractedMetrics.mood;
-      if (mood && moodWeights[mood]) {
+      if (mood && mood in moodWeights) {
         sentimentScore += moodWeights[mood] * (cue.confidence / 100);
       }
     }

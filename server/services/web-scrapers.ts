@@ -107,7 +107,7 @@ export class WebScrapingService {
       
       // Extract career stats and injury history
       const careerStats = {};
-      const injuryHistory = [];
+      const injuryHistory: any[] = [];
 
       // Parse career stats table
       $('#stats tbody tr').each((_, element) => {
