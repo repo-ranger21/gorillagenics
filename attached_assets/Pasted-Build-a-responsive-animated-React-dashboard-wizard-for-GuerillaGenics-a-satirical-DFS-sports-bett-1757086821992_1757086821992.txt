@@ -1,0 +1,98 @@
+Build a responsive, animated React dashboard wizard for GuerillaGenics — a satirical DFS sports betting platform that cycles users through featured picks, optimized BioBoost recommendations, and real-time data overlays. Include a subscription-based newsletter module offering daily picks for $10/month.
+
+---
+
+🧱 Tech Stack:
+- Frontend: React + TailwindCSS + Framer Motion
+- Backend: Node.js + Express
+- Payments: Stripe API (monthly subscription)
+- Data: Mock JSON for DFS picks, BioBoost scores, and player metrics
+- Animations: Figma-like transitions (slide, fade, bounce, scale)
+- Routing: React Router
+- State: Context API or Zustand
+
+---
+
+🎨 UI Features:
+- Full-screen wizard interface with step-by-step cycling
+- Animated transitions between picks (Framer Motion slide/fade)
+- Figma-style layout: clean cards, modular sections, hover effects
+- Jungle-themed color palette: deep greens, banana yellow, primal red
+- Mascot reactions (emoji overlays) based on BioBoost score
+
+---
+
+📊 DFS Dashboard Wizard:
+- Step 1: Featured DFS Picks
+  - Cards for players with matchup, prop line, BioBoost score
+  - Animated confidence meter (pulse or bounce)
+  - “Over” or “Under” recommendation with commentary
+
+- Step 2: BioBoost Breakdown
+  - Expandable card showing Sleep Score, Testosterone Proxy, Cortisol Proxy, Hydration Level, Injury Recovery Days
+  - Tooltip overlays with metric definitions
+  - Mascot reaction emoji (🦍, ⚡, 💤, 🍌)
+
+- Step 3: Betting Context
+  - Line movement chart (last 24h)
+  - Consensus odds from multiple books
+  - Weather impact tag (wind, temp, rain)
+
+- Step 4: Pick Confirmation
+  - “Lock My Pick” button (non-functional placeholder)
+  - Option to subscribe to daily picks newsletter
+
+---
+
+📬 Newsletter Module:
+- Modal or separate page: “Subscribe for Daily DFS Picks”
+- Stripe integration for $10/month subscription
+- Email input + payment form
+- Confirmation screen with mascot animation
+- Backend route: `POST /api/subscribe` → stores email + Stripe customer ID
+
+---
+
+📦 Folder Structure:
+- /src
+  - /components
+    - FeaturedPickCard.jsx
+    - BioBoostBreakdown.jsx
+    - BettingContext.jsx
+    - WizardStepper.jsx
+    - NewsletterModal.jsx
+  - /pages
+    - DashboardWizard.jsx
+    - Subscribe.jsx
+  - /assets
+    - mascots/
+    - icons/
+  - /data
+    - dfsPicks.json
+    - playerMetrics.json
+  - /utils
+    - bioBoostCalculator.js
+    - oddsNormalizer.js
+    - stripeClient.js
+
+---
+
+🧪 Sample Data Format:
+```js
+{
+  "player": "Josh Allen",
+  "team": "BUF",
+  "matchup": "BUF vs NYJ",
+  "prop": "Passing Yards",
+  "line": 277.5,
+  "bioBoostScore": 91,
+  "recommendation": "Over",
+  "metrics": {
+    "sleepScore": 92,
+    "testosteroneProxy": 87,
+    "cortisolProxy": "Low",
+    "hydrationLevel": 78,
+    "injuryRecoveryDays": 2
+  },
+  "commentary": "🦍 Max Juice detected. Expect banana-fueled dominance."
+}

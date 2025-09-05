@@ -170,7 +170,7 @@ export default function PerformanceHeatmap({ players }: PerformanceHeatmapProps)
               
               return (
                 <motion.div
-                  key={`${cell.playerId}-${animationKey}`}
+                  key={`${cell.playerId}-${cell.x}-${cell.y}-${selectedMetric}`}
                   initial={{ scale: 0, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{

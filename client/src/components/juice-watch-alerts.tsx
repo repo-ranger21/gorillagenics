@@ -227,7 +227,7 @@ export default function JuiceWatchAlerts({ alerts }: JuiceWatchAlertsProps) {
             <div className="space-y-6" data-testid="alerts-feed">
               {alerts.map((alert) => (
                 <motion.div
-                  key={alert.id}
+                  key={`alert-${alert.id}-${alert.timestamp || Date.now()}`}
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
