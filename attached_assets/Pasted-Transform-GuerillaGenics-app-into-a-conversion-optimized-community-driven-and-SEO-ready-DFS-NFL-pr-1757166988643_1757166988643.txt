@@ -1,0 +1,307 @@
+Transform GuerillaGenics.app into a conversion‑optimized, community‑driven, and SEO‑ready DFS/NFL prediction platform. Implement a free trial/teaser funnel, referral system, social proof modules, and end‑to‑end SEO (meta tags, JSON‑LD, sitemap, robots, blog).
+
+---
+
+🎯 Core goals
+
+1) Conversion funnel
+- Free Trial / Teaser Picks:
+  - Non‑subscribed users can view 1–2 free picks per week; the rest are gated.
+  - Gate applies across /weekly-picks and /top5.
+- Modals & banners:
+  - “First Pick Free” modal on first visit (persist dismissal).
+  - “Unlock Full Jungle Access” sticky banner until subscribed.
+- Funnel tracking:
+  - Track stage: awareness → engagement → conversion.
+  - Client: localStorage { gg:funnelStage, gg:firstSeenISO, gg:freePicksViewed }
+  - Server: analytics endpoint logs events (view_pick, unlock_click, subscribe_click).
+  - Respect Do Not Track.
+
+2) Referral system
+- Invite a friend, get a free week:
+  - Each user has a unique referral code + link: https://guerillagenics.app/?ref=<code>
+  - When a referee signs up and verifies email, grant +7 days access to both.
+- Referral dashboard (/dashboard):
+  - Shows referral link, invites sent, conversions, active rewards, expiry dates.
+- Backend:
+  - Generate codes, store redemptions, manage reward issuance/expiry.
+  - Idempotent processing and anti‑abuse (rate limits, IP/device heuristics).
+
+3) Social proof
+- Testimonials page (/testimonials):
+  - Rotating carousel: quote, name, avatar, optional handle.
+  - Backed by JSON or CMS; editable without redeploy.
+- Discord CTA:
+  - Prominent “Join the Jungle Chat 🦍” in nav/footer and on testimonials page.
+- Twitter feed:
+  - Embed @GuerillaGenics timeline in /weekly-picks and /dashboard sidebars with lazy loading.
+
+4) SEO optimization
+- Meta + OG/Twitter:
+  - Title, description, canonical URL, Open Graph, Twitter Card for all major routes.
+- Structured data (JSON‑LD):
+  - Organization (site‑wide).
+  - Article (blog posts).
+  - SportsEvent (matchups on weekly picks).
+- Blog (/blog):
+  - Blog index and post pages with SEO‑friendly slugs (/blog/dfs‑value‑picks‑week‑1).
+  - Markdown or headless CMS support; code‑highlight optional.
+- Sitemap + robots:
+  - Auto‑generate sitemap.xml at build; serve robots.txt with correct rules.
+- Performance:
+  - Preload fonts and key assets; CLS < 0.1; lazy load embeds.
+
+---
+
+🧭 Navigation & routing
+
+- Update nav to include:
+  - Weekly Picks, Top 5 DFS Picks, Dashboard, Blog, Testimonials, Join Discord
+- Add “Community” dropdown for: Testimonials, Discord, Twitter
+- Add “First Pick Free” CTA on landing/weekly-picks for non‑subs
+
+Routes:
+- /weekly-picks
+- /top5
+- /dashboard
+- /testimonials
+- /blog
+- /blog/:slug
+- /legal/robots.txt (served as static)
+- /sitemap.xml (generated)
+- Referral capture on any route via ?ref=<code>
+
+---
+
+🛠️ Tech stack
+
+- Frontend: React, TailwindCSS, Framer Motion, React Router
+- SEO: react-helmet-async for meta tags; JSON‑LD via <script type="application/ld+json">
+- Backend: Node.js, Express; simple in‑memory cache + optional DB (SQLite/Postgres)
+- State/data: Zustand or React Query
+- Blog: Markdown (MDX ready), filesystem or CMS adapter
+- Analytics: event logging endpoint + optional console export initially
+
+---
+
+📂 Folder structure
+
+/src
+  /pages
+    WeeklyPicks.jsx
+    TopFive.jsx
+    Dashboard.jsx
+    Testimonials.jsx
+    BlogIndex.jsx
+    BlogPost.jsx
+  /components
+    FreePickModal.jsx
+    UnlockBanner.jsx
+    ReferralDashboard.jsx
+    TestimonialCarousel.jsx
+    DiscordCTA.jsx
+    TwitterFeed.jsx
+    SEO.jsx
+    JsonLd.jsx
+  /modules
+    funnel/clientFunnel.ts
+    referrals/referralClient.ts
+    seo/meta.ts
+    seo/jsonld.ts
+  /utils
+    storage.ts
+    format.ts
+    routes.ts
+    preload.ts
+  /blog
+    dfs-value-picks-week-1.md
+    bankroll-basics.md
+/server
+  index.js
+  routes/
+    analytics.js
+    referrals.js
+    sitemap.js
+    blog.js
+    testimonials.js
+  services/
+    referralService.js
+    analyticsService.js
+    blogService.js
+    sitemapService.js
+    authService.js
+  db/
+    schema.sql
+    seed.sql
+/public
+  robots.txt
+  icons/*
+  fonts/*
+
+---
+
+🔌 Environment variables
+
+VITE_API_BASE= VITE_API_BASE=https://api.guerillagenics.app
+VITE_SUBSTACK_PUBLICATION= https://substack.com/@guerillagenics?r=6fur6h&utm_medium=ios&utm_source=profile
+DISCORD_INVITE_URL= https://discord.gg/ZaRJJdQN
+TWITTER_HANDLE=GuerillaGenics
+REFERRAL_BASE_URL=https://guerillagenics.app
+NODE_ENV=production
+
+---
+
+🧩 Frontend specs
+
+1) FreePickModal.jsx
+- Trigger: first visit (no gg:firstSeenISO), or when viewing a locked pick.
+- Copy: “First Pick Free — taste the jungle before you subscribe.”
+- Actions: “Claim Free Pick” (reveals 1 free pick), “Maybe Later”
+- Persist decisions in localStorage (gg:freePicksViewed count).
+
+2) UnlockBanner.jsx
+- Sticky top/bottom banner for non‑subs.
+- Copy: “Unlock Full Jungle Access — weekly picks, Top 5 DFS, and Juice Watch.”
+- CTA: “Subscribe on Substack” (VITE_SUBSTACK_PUBLICATION)
+
+3) WeeklyPicks.jsx + TopFive.jsx
+- Check subscription state (mocked or from backend).
+- If non‑sub: render up to 2 unlocked picks; rest as blurred cards with lock overlay.
+- Render TwitterFeed in sidebar (lazy load iframe).
+- Add DiscordCTA block with invite URL (DISCORD_INVITE_URL).
+
+4) ReferralDashboard.jsx (on /dashboard)
+- Show referral link: `${REFERRAL_BASE_URL}?ref=${user.refCode}`
+- Metrics: invites sent, signups, active rewards (days left).
+- “Copy Link” button with tooltip.
+- Explain rules briefly; link to T&C.
+
+5) Testimonials.jsx + TestimonialCarousel.jsx
+- Fetch testimonials from /api/testimonials (editable JSON).
+- Carousel with auto‑advance; pause on hover; accessible controls.
+
+6) SEO.jsx (react-helmet-async)
+- Props: { title, description, canonical, image, noIndex? }
+- Inject OG and Twitter tags.
+- Preload critical fonts/assets via <link rel="preload"> on layout.
+
+7) JsonLd.jsx
+- Renders structured data script tags.
+- Supported types:
+  - Organization (site‑wide)
+  - Article (BlogPost)
+  - SportsEvent (on game cards where data exists)
+
+8) Blog pages
+- BlogIndex reads list from /api/blog or filesystem.
+- BlogPost loads markdown by slug → render with title, date, author, tags, SEO, JSON‑LD.
+
+---
+
+🗄️ Backend specs
+
+Database (schema.sql)
+- users(id pk, email unique, created_at, ref_code unique)
+- referrals(id pk, ref_code, referrer_user_id, referee_user_id, status enum('clicked','joined','verified','rewarded'), created_at)
+- rewards(id pk, user_id, days_granted, expires_at, source enum('referral','promo'))
+- testimonials(id pk, name, quote, avatar_url, created_at, active boolean)
+- blog_posts(id pk, slug unique, title, excerpt, body_md, cover_image, published_at, author)
+
+Routes
+- POST /api/analytics/event → { eventType, meta } (store minimal logs)
+- GET  /api/referrals/code → { refCode } (create for authenticated or temp user)
+- POST /api/referrals/click → { refCode } (log click)
+- POST /api/referrals/convert → { refCode, email } (create/join user, mark joined)
+- POST /api/referrals/verify → { userId } (mark verified, issue rewards to referrer/referee)
+- GET  /api/referrals/stats → { invites, signups, rewardsActive, daysRemaining }
+- GET  /api/testimonials → [ { name, quote, avatar_url } ]
+- GET  /api/blog → [ { slug, title, excerpt, published_at, author } ]
+- GET  /api/blog/:slug → { slug, title, excerpt, body_md, cover_image, published_at, author }
+- GET  /sitemap.xml → XML from sitemapService (include core routes + blog slugs)
+- GET  /robots.txt → static from /public
+
+Services
+- referralService: generate codes, validate, award rewards, prevent abuse
+- analyticsService: append‑only logs with IP/user agent hash
+- blogService: file‑backed markdown or DB; sanitize HTML
+- sitemapService: generate sitemap with daily changefreq for dynamic content
+
+Security
+- Rate limit analytics/referral endpoints.
+- Sanitize blog markdown.
+- Validate referral code format (e.g., base36 length 8).
+- Signed cookies for lightweight auth or integrate your existing auth.
+
+---
+
+🧠 Copy blocks (brand‑aligned)
+
+First Pick Free modal:
+- Title: “Your first pick’s on the house.”
+- Body: “Taste the Max Juice before you swing from the vines. One free pick, then go primal.”
+- CTA: “Claim Free Pick” | Secondary: “Maybe Later”
+
+Unlock banner:
+- “Unlock Full Jungle Access — Weekly Picks, Top 5 DFS, and Juice Watch. $10/month on Substack.”
+
+Discord CTA:
+- “Join the Jungle Chat 🦍 — live slate talk, sweat parties, and banana memes.”
+
+Testimonial example:
+- “The BioBoost edge paid my pizza tab three Sundays in a row.” — Alex R.
+
+---
+
+📦 Sample utilities (pseudo‑code)
+
+clientFunnel.ts
+- getStage(): Awareness|Engagement|Conversion (from localStorage)
+- track(event, meta): POST /api/analytics/event
+- grantFreePick(): increment gg:freePicksViewed (max 2/week)
+- isLocked(index): return !subscribed && index >= freePicksLimit
+
+referralClient.ts
+- getOrCreateRefCode(): fetch /api/referrals/code
+- captureRefFromURL(): if ?ref, POST /api/referrals/click
+- onSignup(email): POST /api/referrals/convert
+- onVerify(userId): POST /api/referrals/verify
+
+seo/meta.ts
+- buildMeta(route, params): returns title/description/canonical/image
+
+seo/jsonld.ts
+- org(), article(post), sportsEvent(game)
+
+---
+
+🔌 Embeds & performance
+
+- TwitterFeed: lazy load after main content; reduce CLS by reserving height.
+- Preload fonts:
+  - <link rel="preload" as="font" href="/fonts/brand.woff2" type="font/woff2" crossorigin>
+- Preload mascot/icon assets where used above the fold.
+- Lighthouse targets: Performance ≥ 85, CLS < 0.1, SEO ≥ 95.
+
+---
+
+🧪 Acceptance criteria
+
+- Conversion funnel:
+  - Non‑subs see 1–2 free picks; remainder locked with modal/banner prompts.
+  - Funnel events tracked (view, click, subscribe).
+- Referrals:
+  - Unique referral links issued; clicks tracked; verifications grant +7 days to both parties.
+  - Dashboard shows live stats and copyable link.
+- Social proof:
+  - Testimonials page live with carousel; Discord CTA visible in nav/footer; Twitter feed embedded on /weekly-picks and /dashboard.
+- SEO:
+  - Per‑route meta tags via react‑helmet‑async.
+  - JSON‑LD present for Organization, Blog posts, SportsEvent on matchups.
+  - Blog index/posts live at SEO‑friendly slugs.
+  - sitemap.xml and robots.txt served correctly.
+- Performance:
+  - Fonts/assets preloaded; embeds lazy; CLS < 0.1.
+- Branding:
+  - Copy matches jungle tone; components follow palette (#0B3D2E, #FFD447, #C53030, #16A34A).
+
+Deliver a complete, runnable enhancement that implements the conversion funnel, referrals, social proof, and SEO suite, fully branded for GuerillaGenics.
