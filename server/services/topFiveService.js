@@ -1,12 +1,12 @@
 // Top 5 Weekly DFS Picks Service - GuerillaGenics Scoring Algorithm
 import { ScheduleEspnAdapter } from '../adapters/scheduleEspn.js';
-import { PlayersSleeperAdapter } from '../adapters/playersSleeper.js';
 import { OddsTheOddsApiAdapter } from '../adapters/oddsTheOddsApi.js';
+import { livePlayerService } from './live-player-service.js';
+import { storage } from '../storage.js';
 
 export class TopFiveService {
   constructor() {
     this.scheduleAdapter = new ScheduleEspnAdapter();
-    this.playersAdapter = new PlayersSleeperAdapter();
     this.oddsAdapter = new OddsTheOddsApiAdapter(process.env.ODDS_API_KEY);
     this.cache = new Map();
     this.cacheExpiry = 5 * 60 * 1000; // 5 minutes
@@ -75,26 +75,34 @@ export class TopFiveService {
   }
 
   async buildCandidatePool(teamIds) {
-    const allCandidates = [];
-    
-    // Fetch offensive players from all playing teams
-    for (const teamId of teamIds) {
-      try {
-        const teamOffense = await this.playersAdapter.getFeaturedOffense(teamId);
-        if (teamOffense.players) {
-          // Strict validation - offensive positions only
-          const validPlayers = this.validateOffensiveOnly(teamOffense.players);
-          allCandidates.push(...validPlayers.map(player => ({
-            ...player,
-            teamId: teamId
-          })));
-        }
-      } catch (error) {
-        console.warn(`Failed to fetch players for team ${teamId}:`, error.message);
-      }
-    }
+    try {
+      // Get all current NFL players from the same source as the main platform
+      const allPlayers = await livePlayerService.refreshPlayerData();
+      
+      // Filter to only offensive positions and playing teams
+      const candidates = allPlayers.filter(player => {
+        return (
+          this.offensivePositions.has(player.position) && 
+          teamIds.some(teamId => this.matchesTeam(player.team, teamId))
+        );
+      }).map(player => ({
+        id: player.id,
+        name: player.name,
+        position: player.position,
+        team: player.team,
+        teamId: this.findTeamId(player.team, teamIds),
+        roleTag: this.getRoleTag(player.position),
+        experience: 3, // Default experience
+        injuryStatus: 'Healthy', // Default status
+        headshotUrl: this.getPlayerHeadshot(player.id)
+      }));
 
-    return allCandidates;
+      console.log(`✅ Built candidate pool with ${candidates.length} offensive players`);
+      return candidates;
+    } catch (error) {
+      console.error('Failed to build candidate pool:', error);
+      return [];
+    }
   }
 
   validateOffensiveOnly(players) {
@@ -124,9 +132,9 @@ export class TopFiveService {
       return {
         playerId: player.id,
         name: player.name,
-        teamAbbr: this.getTeamAbbr(player.teamId, schedule),
+        teamAbbr: player.team, // Use the player's actual team from live data
         position: player.position,
-        matchup: gameContext ? this.formatMatchup(gameContext, player.teamId) : 'TBD',
+        matchup: gameContext ? this.formatMatchup(gameContext, player.teamId) : `${player.team} vs TBD`,
         kickoffEt: gameContext ? this.formatKickoffTime(gameContext.startTimeISO) : 'TBD',
         slate: gameContext ? (gameContext.timeSlot === 'SNF' || gameContext.timeSlot === 'MNF' || gameContext.timeSlot === 'Thursday' ? 'Prime' : 'Main') : 'Main',
         ggScore,
@@ -291,6 +299,35 @@ export class TopFiveService {
       minute: '2-digit',
       hour12: true
     }) + ' ET';
+  }
+
+  matchesTeam(playerTeam, scheduleTeamId) {
+    // Simple team matching - you may need to enhance this mapping
+    const teamMappings = {
+      'BUF': ['2'], 'MIA': ['15'], 'NE': ['17'], 'NYJ': ['20'],
+      'BAL': ['33'], 'CIN': ['4'], 'CLE': ['5'], 'PIT': ['23'],
+      'HOU': ['34'], 'IND': ['11'], 'JAX': ['30'], 'TEN': ['10'],
+      'DEN': ['7'], 'KC': ['12'], 'LV': ['13'], 'LAC': ['24'],
+      'DAL': ['6'], 'NYG': ['19'], 'PHI': ['21'], 'WAS': ['28'],
+      'CHI': ['3'], 'DET': ['8'], 'GB': ['9'], 'MIN': ['16'],
+      'ATL': ['1'], 'CAR': ['29'], 'NO': ['18'], 'TB': ['27'],
+      'ARI': ['22'], 'LAR': ['14'], 'SF': ['25'], 'SEA': ['26']
+    };
+    
+    return teamMappings[playerTeam]?.includes(scheduleTeamId.toString()) || false;
+  }
+
+  findTeamId(playerTeam, teamIds) {
+    // Find the corresponding team ID from schedule
+    return teamIds.find(id => this.matchesTeam(playerTeam, id)) || teamIds[0];
+  }
+
+  getRoleTag(position) {
+    return `${position}1`; // Simplified role tagging
+  }
+
+  getPlayerHeadshot(playerId) {
+    return `https://a.espncdn.com/i/headshots/nfl/players/full/${playerId}.png`;
   }
 
   getFallbackTopFive(week) {
