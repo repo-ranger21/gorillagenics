@@ -1,0 +1,79 @@
+Stripe Integration for GuerillaGenics Subscription Payments
+
+Integrate Stripe into GuerillaGenics.app to enable secure subscription payments for unlocking premium features such as Weekly Picks, Top 5 DFS Picks, and Juice Watch alerts. The integration must support a $10/month recurring subscription, include branded frontend components, and be extensible for future contributor payouts via Stripe Connect.
+
+---
+
+🎯 Core Requirements
+
+1. **Stripe Setup**
+   - Use Stripe’s Checkout API for subscription payments.
+   - Product: “Jungle Access” — $10/month recurring.
+   - Store Stripe keys securely:
+     - `STRIPE_SECRET_KEY` in backend `.env`
+     - `VITE_STRIPE_PUBLISHABLE_KEY` in frontend `.env`
+
+2. **Backend (Node.js + Express)**
+   - Install Stripe SDK: `npm install stripe`
+   - Create endpoint: `POST /api/create-checkout-session`
+     - Mode: `subscription`
+     - Line item: Jungle Access price ID
+     - Success URL: `https://guerillagenics.app/success?session_id={CHECKOUT_SESSION_ID}`
+     - Cancel URL: `https://guerillagenics.app/cancel`
+   - Optional: Add webhook endpoint `/api/webhook` to listen for:
+     - `checkout.session.completed`
+     - `customer.subscription.updated`
+     - Update user access status in database
+
+3. **Frontend (React + TailwindCSS)**
+   - Install Stripe client SDK: `npm install @stripe/stripe-js`
+   - Create `SubscribeButton.jsx`:
+     - On click, call `/api/create-checkout-session`
+     - Redirect to Stripe-hosted checkout page
+   - Add button to:
+     - `UnlockBanner.jsx`
+     - `FreePickModal.jsx`
+     - `/dashboard` for unsubscribed users
+
+4. **Environment Variables**
+
+
+STRIPE_SECRET_KEY=sk_live_… VITE_STRIPE_PUBLISHABLE_KEY=pk_live_…
+
+
+5. **User Access Logic**
+- After successful payment, mark user as “subscribed”
+- Gate premium content (Weekly Picks, Top 5 DFS) based on subscription status
+- Store access flag in backend or JWT token
+
+6. **Branding**
+- Button text: “Unlock Full Jungle Access 🦍”
+- Modal copy: “Your first pick’s on the house. Subscribe for full jungle access.”
+- Use jungle palette: #0B3D2E, #FFD447, #C53030, #16A34A
+
+7. **Extensibility**
+- Prepare backend for Stripe Connect integration:
+  - Contributor onboarding via Express accounts
+  - Referral payouts or pick-based earnings
+- Add placeholder route: `POST /api/connect/onboard`
+
+---
+
+📂 Folder Structure
+
+
+/src/pages Dashboard.jsx /src/components SubscribeButton.jsx UnlockBanner.jsx FreePickModal.jsx /src/utils stripeClient.js /server index.js routes/ checkout.js webhook.js connect.js services/ stripeService.js accessService.js
+
+
+---
+
+🧪 Acceptance Criteria
+
+- Stripe Checkout launches on button click and processes subscription.
+- Success redirects to `/success`; cancel to `/cancel`.
+- User access is updated after payment confirmation.
+- Premium content is gated for unsubscribed users.
+- All UI matches GuerillaGenics branding.
+- Code is secure, modular, and extensible for future Stripe Connect features.
+
+Deliver a complete, runnable Stripe integration that enables subscription payments for GuerillaGenics.app and lays the foundation for contributor monetization.
