@@ -1,0 +1,129 @@
+GuerillaGenics Dynamic Matchups, DFS Player Spotlights, Salary Integration & Pick History
+
+Upgrade GuerillaGenics.app into a fully dynamic, data-driven DFS and weekly NFL prediction platform by implementing the following improvements:
+
+---
+
+🎯 Core Goals
+
+1. **Replace Static Matchups with Live Schedule Integration**
+   - Integrate a live NFL schedule API:
+     - Primary: [ESPN JSON feed or scoreboard endpoint]
+     - Secondary: [The Odds API](https://the-odds-api.com/liveapi/guides/v4/) for matchup + odds data
+   - Auto-detect current NFL week based on UTC date.
+   - Auto-rollover to next week’s slate every Tuesday at 12:00 AM ET.
+   - Cache schedule data for 15 minutes; fallback to last-known cache if API fails.
+
+2. **Add Offensive Player Spotlights per Matchup**
+   - For each matchup, display 2–4 featured offensive players per team:
+     - Positions: QB, RB, WR, TE only.
+     - Data sources:
+       - Primary: Sleeper API (player meta, team, position, status)
+       - Secondary: SportsData.io (if available)
+     - Include:
+       - Headshot image
+       - Role tag (QB1, WR1, RB1, TE1)
+       - Usage notes (e.g., target share, carry share, red zone usage)
+       - DFS value indicator (based on salary vs projection)
+   - Filter out any player with defensive or special teams positions.
+
+3. **Integrate DFS Salary Context**
+   - Pull DraftKings and FanDuel salary data for featured players:
+     - Use public CSV feeds or partner APIs if available.
+     - Normalize salaries to show value tiers: Elite, Mid, Sleeper.
+   - Add “Slate Eligibility” badges:
+     - Main Slate (Sunday 1pm–4pm)
+     - Prime-Time (SNF, MNF, TNF)
+     - Showdown (single-game slates)
+   - Display salary next to player name with color-coded value badge.
+
+4. **Add Pick History and Accuracy Tracking**
+   - Create a `/past-picks` page with:
+     - Weekly archive of all matchups and GuerillaGenics picks.
+     - Outcome tracking: Win/Loss, Over/Under result.
+     - BioBoost score and confidence band per pick.
+     - Accuracy metrics:
+       - Overall pick accuracy (%)
+       - Over/Under hit rate
+       - BioBoost prediction success rate
+       - Contributor trust score (if multi-user)
+   - Add filters: by week, team, result, confidence band.
+   - Cache historical data in localStorage and backend DB.
+
+---
+
+🧭 Navigation & Routing
+
+- Add new routes:
+
+
+/weekly-picks /past-picks
+
+- Update navigation menu with dropdown tabs:
+- Weekly Picks
+- DFS Spotlight
+- Past Picks
+- Betting Education
+- Juice Watch Alerts
+
+---
+
+📄 Page Details
+
+### /weekly-picks
+- Live matchups from schedule API.
+- Odds from The Odds API.
+- Featured offensive players per team.
+- DFS salary + slate eligibility.
+- GuerillaGenics pick: winner + O/U lean + BioBoost score + commentary.
+
+### /past-picks
+- Table/grid view of archived picks.
+- Filters: week, team, result, confidence.
+- Accuracy dashboard with charts (optional).
+
+---
+
+🛠️ Tech Stack
+
+- Frontend: React, TailwindCSS, Framer Motion, React Router.
+- Backend: Node.js, Express, WebSocket (for live odds).
+- State: Zustand or React Query.
+- Data Sources:
+- Schedule: ESPN, The Odds API
+- Odds: The Odds API
+- Players: Sleeper API
+- DFS Salaries: DraftKings/FanDuel CSV or API
+- Caching: localStorage (frontend), in-memory TTL (backend)
+
+---
+
+📂 Folder Structure
+
+
+/src/pages WeeklyPicks.jsx PastPicks.jsx /src/components MatchupCard.jsx PlayerSpotlight.jsx SalaryBadge.jsx SlateBadge.jsx PickHistoryTable.jsx AccuracyDashboard.jsx LoadingScreen.jsx FallbackContent.jsx /src/utils weekResolver.js scoring.js commentary.js salaryUtils.js /server index.js routes/ weeklyPicks.js pastPicks.js players.js salaries.js schedule.js odds.js services/ scheduleService.js oddsService.js playerService.js salaryService.js pickHistoryService.js
+
+
+---
+
+🔌 Environment Variables
+
+
+VITE_API_BASE=https://your-domain/api VITE_SUBSTACK_PUBLICATION=https://your-substack.substack.com SCHEDULE_PROVIDER=espn ODDS_PROVIDER=theoddsapi PLAYERS_PROVIDER=sleeper SALARY_PROVIDER=draftkings ODDS_API_KEY=xxxxx NFL_API_KEY=xxxxx NODE_ENV=production
+
+
+---
+
+🧪 Acceptance Criteria
+
+- Weekly Picks page shows live matchups with auto-rollover every Tuesday.
+- Each matchup includes featured offensive players with headshots, usage notes, and DFS salary.
+- Salary data is normalized and displayed with value tiers and slate eligibility.
+- Past Picks page tracks historical picks, outcomes, and BioBoost accuracy.
+- Navigation includes dropdown tabs for all new pages.
+- All pages match GuerillaGenics brand voice and aesthetic.
+- Mobile performance score ≥ 85 on Lighthouse.
+
+---
+
+Deliver a complete, runnable enhancement that transforms GuerillaGenics.app into a dynamic, data-rich DFS prediction platform with live matchups, offensive player spotlights, DFS salary context, and historical pick tracking.
