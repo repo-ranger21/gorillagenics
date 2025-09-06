@@ -16,6 +16,10 @@ import NewsletterCTA from "@/components/NewsletterCTA";
 import LoadingScreen from "@/components/LoadingScreen";
 import FallbackContent from "@/components/FallbackContent";
 import { TopFivePanel } from "@/components/TopFivePanel";
+import { MatchupCardSkeleton } from "@/components/SkeletonCard";
+import FallbackBanner from "@/components/FallbackBanner";
+import { useNetworkStatus } from "@/hooks/useEnhancedQuery";
+import { useHydrationPriority } from "@/utils/hydration";
 
 import { 
   getCurrentNFLWeek, 
@@ -44,6 +48,11 @@ export default function WeeklyPicks() {
   const [error, setError] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState('all');
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [isCached, setIsCached] = useState(false);
+  const [cacheAge, setCacheAge] = useState<number>();
+  
+  const { isOnline } = useNetworkStatus();
+  const { canHydrateSecondary } = useHydrationPriority();
 
   // Initialize and fetch data
   useEffect(() => {
@@ -89,35 +98,66 @@ export default function WeeklyPicks() {
 
   const loadWeekData = async (weekNumber: number, useCache = false) => {
     try {
-      // Fetch week data from API
-      const response = await fetch(`/api/weekly-picks/${weekNumber}`);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch week ${weekNumber} data`);
-      }
-      const schedule = await response.json();
-      setWeekData(schedule);
-      setLastUpdated(new Date());
+      setIsCached(false);
+      setCacheAge(undefined);
       
-      // Cache the data
-      localStorage.setItem(`picks_week_${weekNumber}`, JSON.stringify({
-        data: schedule,
-        lastUpdated: new Date().toISOString()
-      }));
-      return;
-
-      if (useCache) {
-        // Try cached data first
-        const cached = localStorage.getItem(`picks_week_${weekNumber}`);
+      // Check for cached data first if offline or requested
+      const cacheKey = `picks_week_${weekNumber}`;
+      const cached = localStorage.getItem(cacheKey);
+      
+      if (useCache || !isOnline) {
         if (cached) {
           const cachedData = JSON.parse(cached);
+          const age = Date.now() - new Date(cachedData.lastUpdated || 0).getTime();
+          
           setWeekData(cachedData.data || []);
           setLastUpdated(new Date(cachedData.lastUpdated || Date.now()));
+          setIsCached(true);
+          setCacheAge(age);
+          
+          console.log(`🦍 Using cached data for week ${weekNumber} (${Math.round(age / 60000)}m old)`);
           return;
         }
       }
       
+      // Fetch fresh data from API
+      const response = await fetch(`/api/weekly-picks/${weekNumber}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch week ${weekNumber} data`);
+      }
+      
+      const schedule = await response.json();
+      setWeekData(schedule);
+      setLastUpdated(new Date());
+      setIsCached(false);
+      setCacheAge(undefined);
+      
+      // Cache the fresh data
+      localStorage.setItem(cacheKey, JSON.stringify({
+        data: schedule,
+        lastUpdated: new Date().toISOString()
+      }));
+      
+      console.log(`🦍 Fetched fresh data for week ${weekNumber}`);
+      
     } catch (err) {
       console.error(`Failed to load week ${weekNumber} data:`, err);
+      
+      // Try to use cached data as fallback
+      const cached = localStorage.getItem(`picks_week_${weekNumber}`);
+      if (cached) {
+        const cachedData = JSON.parse(cached);
+        const age = Date.now() - new Date(cachedData.lastUpdated || 0).getTime();
+        
+        setWeekData(cachedData.data || []);
+        setLastUpdated(new Date(cachedData.lastUpdated || Date.now()));
+        setIsCached(true);
+        setCacheAge(age);
+        
+        console.log(`🦍 Using cached fallback for week ${weekNumber}`);
+        return;
+      }
+      
       throw err;
     }
   };
@@ -176,7 +216,79 @@ export default function WeeklyPicks() {
     : 0;
 
   if (isLoading && weekData.length === 0) {
-    return <LoadingScreen message="🦍 Fetching weekly gorilla picks..." />;
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-secondary/10 layout-shell">
+        {/* Instant shell */}
+        <div className="bg-primary/10 border-b">
+          <div className="container mx-auto px-4 py-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Link href="/" className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors">
+                  <ArrowLeft className="w-4 h-4" />
+                  Back to Home
+                </Link>
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-primary/20 rounded-lg">
+                    <Target className="w-6 h-6 text-primary" />
+                  </div>
+                  <div>
+                    <h1 className="text-3xl font-bold">GuerillaGenics — Weekly Picks</h1>
+                    <p className="text-muted-foreground">Loading jungle intel...</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="container mx-auto px-4 py-8">
+          {/* Skeleton loaders instead of spinner */}
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            <div className="lg:col-span-3 space-y-6">
+              {/* Week selector skeleton */}
+              <div className="animate-pulse bg-card border rounded-lg p-6">
+                <div className="flex justify-between items-center">
+                  <div className="h-10 w-48 bg-muted rounded" />
+                  <div className="flex gap-6">
+                    <div className="text-center">
+                      <div className="h-8 w-12 bg-muted rounded mb-1" />
+                      <div className="h-4 w-16 bg-muted rounded" />
+                    </div>
+                    <div className="text-center">
+                      <div className="h-8 w-12 bg-muted rounded mb-1" />
+                      <div className="h-4 w-20 bg-muted rounded" />
+                    </div>
+                    <div className="text-center">
+                      <div className="h-8 w-12 bg-muted rounded mb-1" />
+                      <div className="h-4 w-16 bg-muted rounded" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Game card skeletons */}
+              <div className="space-y-4">
+                {[...Array(6)].map((_, i) => (
+                  <MatchupCardSkeleton key={`loading-skeleton-${i}`} />
+                ))}
+              </div>
+            </div>
+            
+            <div className="space-y-6">
+              {/* Sidebar skeletons */}
+              <div className="animate-pulse bg-card border rounded-lg p-6">
+                <div className="h-6 w-32 bg-muted rounded mb-4" />
+                <div className="space-y-2">
+                  <div className="h-4 w-full bg-muted rounded" />
+                  <div className="h-4 w-4/5 bg-muted rounded" />
+                  <div className="h-4 w-3/5 bg-muted rounded" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (error && weekData.length === 0) {
@@ -235,10 +347,35 @@ export default function WeeklyPicks() {
         </div>
       </div>
 
+      {/* Fallback Banner */}
+      <AnimatePresence>
+        {(isCached || !isOnline || error) && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="container mx-auto px-4 pt-4"
+          >
+            <FallbackBanner
+              type={!isOnline ? 'offline' : error ? 'error' : 'cached'}
+              message={
+                !isOnline ? 'You\'re offline. Showing cached jungle data.' :
+                error ? 'Having trouble fetching fresh data. Using cached intel.' :
+                'Displaying cached jungle data while updates load.'
+              }
+              cacheAge={cacheAge}
+              onRefresh={handleRefreshData}
+              onDismiss={() => setIsCached(false)}
+              isRefreshing={isLoading}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
         {/* Top 5 Weekly DFS Picks */}
-        <TopFivePanel />
+        {canHydrateSecondary ? <TopFivePanel /> : null}
         
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Main Content */}
@@ -352,13 +489,17 @@ export default function WeeklyPicks() {
                       
                       <div className="grid gap-4">
                         {(games as any[]).map((game: any, index: number) => (
-                          <WeeklyPickCard 
-                            key={game.gameId || `game-${index}`}
-                            game={game}
-                            index={index}
-                            showDetails={false}
-                            onToggleDetails={() => {}}
-                          />
+                          canHydrateSecondary ? (
+                            <WeeklyPickCard 
+                              key={game.gameId || `game-${index}`}
+                              game={game}
+                              index={index}
+                              showDetails={false}
+                              onToggleDetails={() => {}}
+                            />
+                          ) : (
+                            <MatchupCardSkeleton key={`skeleton-${game.gameId || index}`} />
+                          )
                         ))}
                       </div>
                     </motion.div>
@@ -373,13 +514,17 @@ export default function WeeklyPicks() {
                   className="grid gap-4"
                 >
                   {getFilteredGames().map((game: any, index: number) => (
-                    <WeeklyPickCard 
-                      key={game.gameId || `filtered-${index}`}
-                      game={game}
-                      index={index}
-                      showDetails={false}
-                      onToggleDetails={() => {}}
-                    />
+                    canHydrateSecondary ? (
+                      <WeeklyPickCard 
+                        key={game.gameId || `filtered-${index}`}
+                        game={game}
+                        index={index}
+                        showDetails={false}
+                        onToggleDetails={() => {}}
+                      />
+                    ) : (
+                      <MatchupCardSkeleton key={`skeleton-filtered-${game.gameId || index}`} />
+                    )
                   ))}
                 </motion.div>
               )}
