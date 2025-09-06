@@ -88,25 +88,6 @@ export default function WeeklyPickCard({
         </CardHeader>
 
         <CardContent className="space-y-4">
-          {/* Recommended Pick Banner */}
-          <div className="bg-gradient-to-r from-jungle to-jungle/80 rounded-lg p-4 mb-4">
-            <div className="text-center">
-              <div className="text-banana text-sm font-medium mb-1">🦍 GUERILLAGENICS RECOMMENDS</div>
-              <div className="text-white text-xl font-bold">
-                {game.predicted === game.away.code ? (
-                  <>{game.away.emoji} {game.away.team} <span className="text-banana">TO WIN</span></>
-                ) : (
-                  <>{game.home.emoji} {game.home.team} <span className="text-banana">TO WIN</span></>
-                )}
-              </div>
-              <div className={`text-sm mt-1 ${
-                game.confidence === 'HIGH' ? 'text-vine' : 
-                game.confidence === 'MEDIUM' ? 'text-banana' : 'text-white/80'
-              }`}>
-                {game.confidence} CONFIDENCE
-              </div>
-            </div>
-          </div>
 
           {/* Teams Matchup */}
           <div className="grid grid-cols-2 gap-4">
@@ -208,12 +189,34 @@ export default function WeeklyPickCard({
             </div>
           </div>
 
-          {/* Commentary */}
+          {/* Gorilla Intel with Pick */}
           <div className="bg-jungle/5 rounded-lg p-4 border-l-4 border-jungle">
-            <div className="space-y-2">
+            <div className="space-y-3">
               <div className="font-semibold text-jungle flex items-center gap-2">
-                🦍 <span>Gorilla Analysis</span>
+                🦍 <span>Gorilla Intel</span>
               </div>
+              
+              {/* TO WIN Pick */}
+              <div className="bg-gradient-to-r from-jungle to-jungle/80 rounded-lg p-3">
+                <div className="text-center">
+                  <div className="text-banana text-xs font-medium mb-1">GUERILLAGENICS PICK</div>
+                  <div className="text-white text-lg font-bold">
+                    {game.predicted === game.away.code ? (
+                      <>{game.away.emoji} {game.away.team} <span className="text-banana">TO WIN</span></>
+                    ) : (
+                      <>{game.home.emoji} {game.home.team} <span className="text-banana">TO WIN</span></>
+                    )}
+                  </div>
+                  <div className={`text-xs mt-1 ${
+                    game.confidence === 'HIGH' ? 'text-vine' : 
+                    game.confidence === 'MEDIUM' ? 'text-banana' : 'text-white/80'
+                  }`}>
+                    {game.confidence} CONFIDENCE
+                  </div>
+                </div>
+              </div>
+              
+              {/* Analysis Commentary */}
               <p className="text-muted-foreground leading-relaxed text-sm">
                 {game.commentary}
               </p>
