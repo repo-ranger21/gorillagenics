@@ -1087,6 +1087,347 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/top5', handleTopFiveRequest);
   app.get('/api/health', handleHealthCheck);
 
+  // Enhanced API routes for new GuerillaGenics features
+  app.get("/api/top-five", async (req, res) => {
+    try {
+      const { slate = "Main" } = req.query;
+      
+      // Mock top 5 DFS picks data
+      const topFivePicks = [
+        {
+          id: "player-1",
+          name: "Josh Allen",
+          team: "BUF",
+          position: "QB",
+          ggScore: 9.2,
+          salary: 8500,
+          ownership: 25.8,
+          matchup: "BUF vs MIA",
+          opponent: "MIA",
+          spread: -2.5,
+          total: 48.5,
+          weatherImpact: "Dome - No Impact",
+          slate,
+          commentary: "Elite QB1 with rushing upside in a potential shootout. Miami's secondary allows 7.8 YPA - perfect storm for ceiling games.",
+          confidence: "HIGH",
+          projectedPoints: 23.4,
+          valueRating: 8.7
+        },
+        {
+          id: "player-2", 
+          name: "Saquon Barkley",
+          team: "PHI",
+          position: "RB",
+          ggScore: 8.9,
+          salary: 7800,
+          ownership: 18.2,
+          matchup: "PHI @ WAS",
+          opponent: "WAS",
+          spread: -6.5,
+          total: 45.5,
+          weatherImpact: "Clear - Optimal",
+          slate,
+          commentary: "Washington's run defense ranks 28th in DVOA. Negative game script could mean 20+ touches in a blowout scenario.",
+          confidence: "HIGH",
+          projectedPoints: 19.8,
+          valueRating: 9.1
+        },
+        {
+          id: "player-3",
+          name: "CeeDee Lamb", 
+          team: "DAL",
+          position: "WR",
+          ggScore: 8.4,
+          salary: 8000,
+          ownership: 22.1,
+          matchup: "DAL vs NYG",
+          opponent: "NYG",
+          spread: -3.5,
+          total: 43.5,
+          weatherImpact: "Dome - No Impact",
+          slate,
+          commentary: "Target monster facing a secondary that bleeds yards to slot receivers. 12+ targets almost guaranteed in division rivalry.",
+          confidence: "MEDIUM",
+          projectedPoints: 16.7,
+          valueRating: 7.8
+        },
+        {
+          id: "player-4",
+          name: "Travis Kelce",
+          team: "KC", 
+          position: "TE",
+          ggScore: 8.1,
+          salary: 6200,
+          ownership: 15.4,
+          matchup: "KC @ LV",
+          opponent: "LV",
+          spread: -9.5,
+          total: 41.5,
+          weatherImpact: "Dome - No Impact",
+          slate,
+          commentary: "Revenge game narrative plus Raiders struggle vs TEs over the middle. Could see 8+ targets in first half alone.",
+          confidence: "MEDIUM",
+          projectedPoints: 14.2,
+          valueRating: 8.3
+        },
+        {
+          id: "player-5",
+          name: "Derrick Henry",
+          team: "BAL",
+          position: "RB", 
+          ggScore: 7.9,
+          salary: 6800,
+          ownership: 12.8,
+          matchup: "BAL vs CIN",
+          opponent: "CIN",
+          spread: -1.5,
+          total: 47.5,
+          weatherImpact: "Clear - Optimal",
+          slate,
+          commentary: "King Henry in purple getting goal line work. Cincinnati's run D improved but still vulnerable to power running between the tackles.",
+          confidence: "MEDIUM",
+          projectedPoints: 16.1,
+          valueRating: 7.6
+        }
+      ];
+      
+      res.json(topFivePicks);
+    } catch (error) {
+      console.error("Error fetching top five picks:", error);
+      res.status(500).json({ message: "Failed to fetch top five picks" });
+    }
+  });
+
+  app.get("/api/leaderboard", async (req, res) => {
+    try {
+      // Mock leaderboard data
+      const contributors = [
+        {
+          id: "contrib-1",
+          name: "AlphaGorilla",
+          avatar: null,
+          rank: 1,
+          previousRank: 2,
+          pickAccuracy: 73.2,
+          bioBoostWinRate: 68.5,
+          currentStreak: 7,
+          streakType: "win",
+          totalPicks: 45,
+          weeklyWins: 11,
+          seasonWins: 33,
+          badge: "silverback",
+          specialization: "Spread Betting",
+          lastActive: "2 hours ago"
+        },
+        {
+          id: "contrib-2", 
+          name: "BananaSlinger",
+          avatar: null,
+          rank: 2,
+          previousRank: 1,
+          pickAccuracy: 71.8,
+          bioBoostWinRate: 72.1,
+          currentStreak: 4,
+          streakType: "win",
+          totalPicks: 38,
+          weeklyWins: 9,
+          seasonWins: 27,
+          badge: "banana_streak",
+          specialization: "DFS Tournaments",
+          lastActive: "5 hours ago"
+        },
+        {
+          id: "contrib-3",
+          name: "JungleKing",
+          avatar: null,
+          rank: 3,
+          previousRank: 5,
+          pickAccuracy: 69.4,
+          bioBoostWinRate: 65.2,
+          currentStreak: 12,
+          streakType: "win",
+          totalPicks: 52,
+          weeklyWins: 10,
+          seasonWins: 36,
+          badge: "fast_climber",
+          specialization: "Over/Under",
+          lastActive: "1 day ago"
+        }
+      ];
+      
+      res.json(contributors);
+    } catch (error) {
+      console.error("Error fetching leaderboard:", error);
+      res.status(500).json({ message: "Failed to fetch leaderboard" });
+    }
+  });
+
+  app.get("/api/past-picks", async (req, res) => {
+    try {
+      // Mock past picks data
+      const pastPicks = [
+        {
+          id: "pick-1",
+          week: 17,
+          gameId: "401547439",
+          homeTeam: "KC",
+          awayTeam: "LV",
+          pickedTeam: "KC",
+          pickedSpread: -9.5,
+          actualSpread: -9.5,
+          pickedTotal: 41.5,
+          actualTotal: 45,
+          outcome: "win",
+          bioBoostAccuracy: 82,
+          confidence: "HIGH",
+          commentary: "Chiefs dominate division rivals at home with Mahomes leading explosive offense.",
+          date: "2024-12-29",
+          finalScore: "KC 31, LV 13"
+        },
+        {
+          id: "pick-2",
+          week: 17,
+          gameId: "401547440", 
+          homeTeam: "BUF",
+          awayTeam: "MIA",
+          pickedTeam: "Over",
+          pickedSpread: 0,
+          actualSpread: 0,
+          pickedTotal: 48.5,
+          actualTotal: 52,
+          outcome: "win",
+          bioBoostAccuracy: 75,
+          confidence: "MEDIUM",
+          commentary: "High-scoring AFC East battle with both QBs playing for playoff seeding.",
+          date: "2024-12-29",
+          finalScore: "BUF 28, MIA 24"
+        }
+      ];
+      
+      res.json(pastPicks);
+    } catch (error) {
+      console.error("Error fetching past picks:", error);
+      res.status(500).json({ message: "Failed to fetch past picks" });
+    }
+  });
+
+  app.get("/api/dashboard", async (req, res) => {
+    try {
+      // Mock dashboard data
+      const dashboardData = {
+        stats: {
+          totalPicks: 127,
+          winRate: 68.5,
+          currentStreak: 5,
+          favoriteTeams: 4
+        }
+      };
+      
+      res.json(dashboardData);
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+      res.status(500).json({ message: "Failed to fetch dashboard data" });
+    }
+  });
+
+  app.get("/api/user/saved-picks", async (req, res) => {
+    try {
+      // Mock saved picks
+      const savedPicks = [
+        {
+          id: "saved-1",
+          gameId: "401547441",
+          homeTeam: "DAL",
+          awayTeam: "PHI",
+          pickedTeam: "PHI",
+          confidence: "HIGH",
+          date: "2024-12-30",
+          status: "pending"
+        }
+      ];
+      
+      res.json(savedPicks);
+    } catch (error) {
+      console.error("Error fetching saved picks:", error);
+      res.status(500).json({ message: "Failed to fetch saved picks" });
+    }
+  });
+
+  app.get("/api/user/favorite-teams", async (req, res) => {
+    try {
+      // Mock favorite teams
+      const favoriteTeams = [
+        {
+          id: "team-1",
+          name: "Kansas City Chiefs",
+          code: "KC",
+          emoji: "🔴",
+          record: "14-3",
+          nextGame: "vs LV (Week 18)",
+          bioBoostTrend: "up"
+        }
+      ];
+      
+      res.json(favoriteTeams);
+    } catch (error) {
+      console.error("Error fetching favorite teams:", error);
+      res.status(500).json({ message: "Failed to fetch favorite teams" });
+    }
+  });
+
+  app.get("/api/user/recent-alerts", async (req, res) => {
+    try {
+      // Mock recent alerts
+      const recentAlerts = [
+        {
+          id: "alert-recent-1",
+          type: "line_movement",
+          title: "Chiefs Line Movement",
+          description: "KC spread moved from -7.5 to -9.5 vs Raiders",
+          time: "2 hours ago",
+          urgency: "medium"
+        }
+      ];
+      
+      res.json(recentAlerts);
+    } catch (error) {
+      console.error("Error fetching recent alerts:", error);
+      res.status(500).json({ message: "Failed to fetch recent alerts" });
+    }
+  });
+
+  app.get("/api/user/profile", async (req, res) => {
+    try {
+      // Mock user profile
+      const userProfile = {
+        id: "user-1",
+        name: "Gorilla Bettor",
+        email: "gorilla@guerillagenics.com",
+        favoriteTeams: ["KC", "BUF"],
+        substackUrl: "",
+        preferences: {
+          emailAlerts: true,
+          lineMovementAlerts: true,
+          injuryAlerts: false,
+          weeklyNewsletter: true,
+          dfsAlerts: true,
+          marketingEmails: false
+        },
+        stats: {
+          totalPicks: 127,
+          winRate: 68.5,
+          currentStreak: 5,
+          favoriteBet: "Spread"
+        }
+      };
+      
+      res.json(userProfile);
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+      res.status(500).json({ message: "Failed to fetch user profile" });
+    }
+  });
+
   const httpServer = createServer(app);
   
   // WebSocket server for live updates - using separate port to avoid Vite conflicts
