@@ -11,6 +11,7 @@ import { Link } from "wouter";
 // Components
 import WeekSelector from "@/components/WeekSelector";
 import WeeklyPickCard from "@/components/WeeklyPickCard";
+import MatchupCard from "@/components/MatchupCard";
 import NewsletterCTA from "@/components/NewsletterCTA";
 import LoadingScreen from "@/components/LoadingScreen";
 import FallbackContent from "@/components/FallbackContent";
