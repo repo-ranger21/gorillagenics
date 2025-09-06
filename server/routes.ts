@@ -1605,6 +1605,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
   
+  // Register new API routes for conversion optimization
+  
+  // Analytics routes
+  const analyticsRoutes = require('./routes/analytics');
+  app.use('/api/analytics', analyticsRoutes);
+  
+  // Referrals routes
+  const referralsRoutes = require('./routes/referrals');
+  app.use('/api/referrals', referralsRoutes);
+  
+  // Testimonials routes
+  const testimonialsRoutes = require('./routes/testimonials');
+  app.use('/api/testimonials', testimonialsRoutes);
+  
+  // Blog routes
+  const blogRoutes = require('./routes/blog');
+  app.use('/api/blog', blogRoutes);
+  
+  // Sitemap and SEO routes
+  const sitemapRoutes = require('./routes/sitemap');
+  app.use('/', sitemapRoutes);
+
   // Initialize live data and start scheduler in development
   if (process.env.NODE_ENV === 'development') {
     console.log('🦍 Starting GuerillaGenics data scheduler in development mode...');
