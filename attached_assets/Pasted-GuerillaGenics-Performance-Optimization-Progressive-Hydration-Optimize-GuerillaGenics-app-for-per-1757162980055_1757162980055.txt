@@ -1,0 +1,105 @@
+GuerillaGenics Performance Optimization & Progressive Hydration
+
+Optimize GuerillaGenics.app for performance, stability, and progressive hydration by implementing the following improvements:
+
+---
+
+🎯 Core Goals
+
+1. **Add Skeleton Loaders for Odds and Picks**
+   - Implement branded skeleton loaders using Tailwind’s `animate-pulse` class.
+   - Apply to:
+     - Matchup cards (weekly picks)
+     - Top 5 DFS picks
+     - Player spotlights
+     - Odds ticker
+   - Skeletons should match layout and spacing of final content to reduce layout shift.
+   - Use Framer Motion for fade-in transitions when real data arrives.
+
+2. **Reduce CLS (Cumulative Layout Shift)**
+   - Preload all fonts used in the jungle UI:
+     - Use `<link rel="preload" as="font">` in `<head>` for custom fonts.
+     - Host fonts locally or via CDN with preload headers.
+   - Preload key assets:
+     - Mascot SVG/icon
+     - Jungle background textures
+     - Navigation icons
+   - Reserve space for all dynamic content:
+     - Set fixed height/width for odds, picks, and player cards.
+     - Avoid layout jumps when data loads.
+
+3. **Implement Progressive Hydration**
+   - Render page shell instantly:
+     - Navigation
+     - Header
+     - Filters
+     - Static layout containers
+   - Hydrate dynamic data (odds, picks, players) asynchronously:
+     - Use React Suspense or conditional rendering with loading states.
+     - Prioritize odds and picks first, then player data.
+   - Animate hydration with Framer Motion (fade-in, slide-up).
+
+4. **Cache Last-Known Odds and Picks in localStorage**
+   - On successful data fetch:
+     - Store odds and picks in localStorage under keys:
+       - `gg:lastOdds`
+       - `gg:lastPicks`
+     - Include timestamp for freshness check.
+   - On failed fetch or offline mode:
+     - Load cached odds and picks if available.
+     - Display fallback banner: “Showing cached jungle data — swing back soon for updates.”
+   - Add manual refresh button to re-fetch live data.
+
+---
+
+🧭 Navigation & Routing
+
+- Apply these improvements to:
+  - `/weekly-picks`
+  - `/top5`
+  - `/dashboard`
+  - `/alerts`
+
+---
+
+🛠️ Tech Stack
+
+- Frontend: React, TailwindCSS, Framer Motion, React Router.
+- State: Zustand or React Query.
+- Caching: localStorage (frontend), in-memory TTL (backend).
+- Fonts: Preload jungle-themed fonts (e.g., Bungee, Inter, custom gorilla font).
+- Assets: Preload mascot SVG, jungle textures, and icons.
+
+---
+
+📂 Folder Structure
+
+
+/src/pages WeeklyPicks.jsx TopFive.jsx Dashboard.jsx /src/components MatchupCard.jsx TopPickCard.jsx OddsTicker.jsx PlayerSpotlight.jsx SkeletonCard.jsx LoadingScreen.jsx FallbackBanner.jsx /src/utils cache.js preload.js hydration.js /server index.js routes/ odds.js picks.js players.js services/ cacheService.js
+
+
+---
+
+🔌 Environment Variables
+
+
+VITE_API_BASE= VITE_API_BASE=https://api.guerillagenics.app
+VITE_SUBSTACK_PUBLICATION= https://substack.com/@guerillagenics?r=6fur6h&utm_medium=ios&utm_source=profile NODE_ENV=production
+
+
+---
+
+🧪 Acceptance Criteria
+
+- Skeleton loaders appear instantly on page load and match final layout.
+- CLS score < 0.1 on Lighthouse mobile audit.
+- Fonts and key assets are preloaded before render.
+- Page shell renders instantly; odds and picks hydrate progressively.
+- Cached odds and picks load from localStorage if API fails or user is offline.
+- Fallback banner appears when cached data is shown.
+- Manual refresh button re-fetches live data.
+- All transitions are smooth and brand-aligned.
+
+---
+
+Deliver a complete, runnable enhancement that improves GuerillaGenics.app’s performance, stability, and hydration flow while preserving its jungle aesthetic and contributor-first UX.
