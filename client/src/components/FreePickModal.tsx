@@ -78,7 +78,7 @@ export default function FreePickModal({ onClaimPick, onMaybeLater }: FreePickMod
                 </div>
               </DialogHeader>
 
-              <div className="space-y-6">
+              <div id="free-pick-description" className="space-y-6">
                 {/* Animated gorilla */}
                 <motion.div
                   className="text-center"
