@@ -1428,6 +1428,110 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Enhanced NFL Data API Routes
+  
+  // Import enhanced services
+  const { EnhancedScheduleService } = await import('./services/enhanced-schedule');
+  const { PlayerSpotlightService } = await import('./services/player-spotlight');
+  const { DFSSalaryService } = await import('./services/dfs-salary');
+  const { PickHistoryService } = await import('./services/pick-history');
+  
+  const scheduleService = new EnhancedScheduleService();
+  const playerSpotlightService = new PlayerSpotlightService();
+  const dfsSalaryService = new DFSSalaryService();
+  const pickHistoryService = new PickHistoryService();
+
+  // Live schedule with auto-week detection
+  app.get("/api/schedule/live", async (req, res) => {
+    try {
+      const { week } = req.query;
+      const targetWeek = week ? parseInt(week as string) : undefined;
+      const schedule = await scheduleService.fetchScheduleWithOdds(targetWeek);
+      
+      res.json({
+        week: targetWeek || scheduleService.getCurrentNFLWeek(),
+        games: schedule,
+        status: scheduleService.getScheduleStatus()
+      });
+    } catch (error) {
+      console.error("Error fetching live schedule:", error);
+      res.status(500).json({ message: "Failed to fetch live schedule" });
+    }
+  });
+
+  // Current NFL week info
+  app.get("/api/schedule/current-week", async (req, res) => {
+    try {
+      const status = scheduleService.getScheduleStatus();
+      res.json(status);
+    } catch (error) {
+      console.error("Error getting current week:", error);
+      res.status(500).json({ message: "Failed to get current week" });
+    }
+  });
+
+  // Featured offensive players for matchup
+  app.get("/api/players/spotlight/:homeTeam/:awayTeam", async (req, res) => {
+    try {
+      const { homeTeam, awayTeam } = req.params;
+      const spotlights = await playerSpotlightService.getFeaturedPlayersForMatchup(homeTeam, awayTeam);
+      res.json(spotlights);
+    } catch (error) {
+      console.error("Error fetching player spotlights:", error);
+      res.status(500).json({ message: "Failed to fetch player spotlights" });
+    }
+  });
+
+  // DFS salary information
+  app.get("/api/dfs/salaries", async (req, res) => {
+    try {
+      const { players } = req.query;
+      const playerIds = typeof players === 'string' ? players.split(',') : [];
+      const salaries = await dfsSalaryService.getDFSSalariesForPlayers(playerIds);
+      res.json(salaries);
+    } catch (error) {
+      console.error("Error fetching DFS salaries:", error);
+      res.status(500).json({ message: "Failed to fetch DFS salaries" });
+    }
+  });
+
+  // Historical picks
+  app.get("/api/picks/history", async (req, res) => {
+    try {
+      const filters = {
+        week: req.query.week ? parseInt(req.query.week as string) : undefined,
+        season: req.query.season ? parseInt(req.query.season as string) : undefined,
+        team: req.query.team as string,
+        outcome: req.query.outcome as 'win' | 'loss' | 'push',
+        confidence: req.query.confidence as 'high' | 'medium' | 'low',
+        limit: req.query.limit ? parseInt(req.query.limit as string) : undefined,
+        offset: req.query.offset ? parseInt(req.query.offset as string) : undefined
+      };
+      
+      const picks = await pickHistoryService.getHistoricalPicks(filters);
+      res.json(picks);
+    } catch (error) {
+      console.error("Error fetching pick history:", error);
+      res.status(500).json({ message: "Failed to fetch pick history" });
+    }
+  });
+
+  // Accuracy metrics
+  app.get("/api/picks/accuracy", async (req, res) => {
+    try {
+      const filters = {
+        season: req.query.season ? parseInt(req.query.season as string) : undefined,
+        lastNWeeks: req.query.lastNWeeks ? parseInt(req.query.lastNWeeks as string) : undefined
+      };
+      
+      const metrics = await pickHistoryService.calculateAccuracyMetrics(filters);
+      res.json(metrics);
+    } catch (error) {
+      console.error("Error calculating accuracy metrics:", error);
+      res.status(500).json({ message: "Failed to calculate accuracy metrics" });
+    }
+  });
+
   const httpServer = createServer(app);
   
   // WebSocket server for live updates - using separate port to avoid Vite conflicts
