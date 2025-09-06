@@ -16,7 +16,7 @@ import Profile from "@/pages/Profile";
 import Testimonials from "@/pages/Testimonials";
 import BlogIndex from "@/pages/BlogIndex";
 // Legacy routes
-import DashboardLegacy from "@/pages/dashboard";
+// Remove duplicate dashboard import to fix case sensitivity issue
 import DashboardWizard from "@/pages/dashboard-wizard";
 import NotificationsPage from "@/pages/notifications";
 import Week1 from "@/pages/week1";
@@ -72,7 +72,7 @@ function Router() {
   }, []);
 
   return (
-    <ErrorBoundary FallbackComponent={ErrorFallback} onReset={() => window.location.reload()}>
+    <div>
       <NavMenu />
       
       {/* Global Conversion Components */}
@@ -96,7 +96,7 @@ function Router() {
           <Route path="/blog" component={BlogIndex} />
           
           {/* Legacy Routes for Backward Compatibility */}
-          <Route path="/dashboard-legacy" component={DashboardLegacy} />
+          <Route path="/dashboard-legacy" component={Dashboard} />
           <Route path="/wizard" component={DashboardWizard} />
           <Route path="/notifications" component={NotificationsPage} />
           <Route path="/week1" component={Week1} />
@@ -107,7 +107,7 @@ function Router() {
           <Route component={NotFound} />
         </Switch>
       </Suspense>
-    </ErrorBoundary>
+    </div>
   );
 }
 

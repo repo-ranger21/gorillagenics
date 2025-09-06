@@ -23,7 +23,6 @@ export default function Success() {
       <SEO 
         title="Welcome to the Jungle 🦍 | GuerillaGenics"
         description="Your subscription is active! Access premium NFL DFS picks, BioBoost analytics, and Juice Watch alerts."
-        canonical="/success"
       />
       
       <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-secondary/10 flex items-center justify-center p-4">

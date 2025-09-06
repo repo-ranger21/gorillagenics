@@ -12,7 +12,6 @@ export default function Cancel() {
       <SEO 
         title="Payment Canceled | GuerillaGenics"
         description="Your payment was canceled. No worries - you can try again anytime to unlock full jungle access."
-        canonical="/cancel"
       />
       
       <div className="min-h-screen bg-gradient-to-br from-background via-destructive/5 to-muted/10 flex items-center justify-center p-4">

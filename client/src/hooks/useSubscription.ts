@@ -29,7 +29,7 @@ export function useSubscription(userId?: number): SubscriptionStatus {
     async function fetchStatus() {
       try {
         setStatus(prev => ({ ...prev, loading: true }));
-        const result = await getSubscriptionStatus(userId);
+        const result = await getSubscriptionStatus(userId!);
         setStatus({
           isSubscribed: result.isSubscribed || false,
           subscriptionStatus: result.subscriptionStatus || 'inactive',
