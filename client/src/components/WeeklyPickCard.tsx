@@ -55,53 +55,76 @@ export default function WeeklyPickCard({
       data-testid={`pick-card-${game.id}`}
     >
       <Card className="hover:shadow-lg transition-all duration-200">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
+        <CardHeader className="pb-4">
+          <div className="space-y-3">
             {/* Game Time & Slot */}
-            <div className="flex items-center gap-2">
-              <Badge className={timeSlotColors[game.timeSlot] || 'bg-gray-100 text-gray-800'}>
-                {formatGameDate(game.date)}
-              </Badge>
-              <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                <Clock className="w-3 h-3" />
-                {game.time}
-              </div>
-              {game.location && (
-                <Badge variant="outline" className="text-xs">
-                  {game.location}
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge className={timeSlotColors[game.timeSlot] || 'bg-gray-100 text-gray-800'}>
+                  {formatGameDate(game.date)}
                 </Badge>
-              )}
+                <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                  <Clock className="w-3 h-3" />
+                  {game.time}
+                </div>
+                {game.location && (
+                  <Badge variant="outline" className="text-xs">
+                    {game.location}
+                  </Badge>
+                )}
+              </div>
             </div>
 
-            {/* Confidence Badge */}
-            <Badge 
-              variant="outline" 
-              className={`${confidenceColor} border-current`}
-              data-testid={`confidence-${game.confidence.toLowerCase()}`}
-            >
-              {game.confidence} CONFIDENCE
-            </Badge>
+            {/* Matchup Title */}
+            <div className="text-center">
+              <h3 className="text-lg font-bold text-foreground">
+                {game.away.code} @ {game.home.code}
+              </h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Week {game.week} • {game.time}
+              </p>
+            </div>
           </div>
         </CardHeader>
 
         <CardContent className="space-y-4">
+          {/* Recommended Pick Banner */}
+          <div className="bg-gradient-to-r from-jungle to-jungle/80 rounded-lg p-4 mb-4">
+            <div className="text-center">
+              <div className="text-banana text-sm font-medium mb-1">🦍 GUERILLAGENICS RECOMMENDS</div>
+              <div className="text-white text-xl font-bold">
+                {game.predicted === game.away.code ? (
+                  <>{game.away.emoji} {game.away.team} <span className="text-banana">TO WIN</span></>
+                ) : (
+                  <>{game.home.emoji} {game.home.team} <span className="text-banana">TO WIN</span></>
+                )}
+              </div>
+              <div className={`text-sm mt-1 ${
+                game.confidence === 'HIGH' ? 'text-vine' : 
+                game.confidence === 'MEDIUM' ? 'text-banana' : 'text-white/80'
+              }`}>
+                {game.confidence} CONFIDENCE
+              </div>
+            </div>
+          </div>
+
           {/* Teams Matchup */}
           <div className="grid grid-cols-2 gap-4">
             {/* Away Team */}
             <div className={`text-center p-4 rounded-lg border-2 transition-all ${
               isAwayWinner 
-                ? 'border-primary bg-primary/5 shadow-md' 
+                ? 'border-jungle bg-jungle/10 shadow-md' 
                 : 'border-gray-200 bg-gray-50/50'
             }`}>
-              <div className="space-y-2">
-                <div className="text-2xl">{game.away.emoji}</div>
-                <div className="font-semibold">{game.away.team}</div>
-                <div className="text-sm text-muted-foreground">@</div>
+              <div className="space-y-3">
+                <div className="text-3xl">{game.away.emoji}</div>
+                <div className="font-semibold text-sm leading-tight px-2">{game.away.team}</div>
+                <div className="text-xs text-muted-foreground font-medium">@ AWAY</div>
                 
                 {/* BioBoost Score */}
-                <div className="space-y-1">
+                <div className="space-y-2">
                   <div className="text-xs text-muted-foreground">BioBoost Score</div>
-                  <div className={`text-2xl font-bold ${
+                  <div className={`text-xl font-bold ${
                     game.away.bioBoost >= 80 ? 'text-green-600' :
                     game.away.bioBoost >= 60 ? 'text-yellow-600' : 'text-red-600'
                   }`}>
@@ -115,8 +138,8 @@ export default function WeeklyPickCard({
                 </div>
 
                 {isAwayWinner && (
-                  <Badge className="bg-primary text-primary-foreground">
-                    🦍 GORILLA PICK
+                  <Badge className="bg-jungle text-white text-xs px-2 py-1">
+                    🦍 PICK
                   </Badge>
                 )}
               </div>
@@ -125,18 +148,18 @@ export default function WeeklyPickCard({
             {/* Home Team */}
             <div className={`text-center p-4 rounded-lg border-2 transition-all ${
               isHomeWinner 
-                ? 'border-primary bg-primary/5 shadow-md' 
+                ? 'border-jungle bg-jungle/10 shadow-md' 
                 : 'border-gray-200 bg-gray-50/50'
             }`}>
-              <div className="space-y-2">
-                <div className="text-2xl">{game.home.emoji}</div>
-                <div className="font-semibold">{game.home.team}</div>
-                <div className="text-sm text-muted-foreground">vs</div>
+              <div className="space-y-3">
+                <div className="text-3xl">{game.home.emoji}</div>
+                <div className="font-semibold text-sm leading-tight px-2">{game.home.team}</div>
+                <div className="text-xs text-muted-foreground font-medium">🏠 HOME</div>
                 
                 {/* BioBoost Score */}
-                <div className="space-y-1">
+                <div className="space-y-2">
                   <div className="text-xs text-muted-foreground">BioBoost Score</div>
-                  <div className={`text-2xl font-bold ${
+                  <div className={`text-xl font-bold ${
                     game.home.bioBoost >= 80 ? 'text-green-600' :
                     game.home.bioBoost >= 60 ? 'text-yellow-600' : 'text-red-600'
                   }`}>
@@ -150,8 +173,8 @@ export default function WeeklyPickCard({
                 </div>
 
                 {isHomeWinner && (
-                  <Badge className="bg-primary text-primary-foreground">
-                    🦍 GORILLA PICK
+                  <Badge className="bg-jungle text-white text-xs px-2 py-1">
+                    🦍 PICK
                   </Badge>
                 )}
               </div>
@@ -160,29 +183,40 @@ export default function WeeklyPickCard({
 
           {/* Betting Lines */}
           <div className="bg-accent/50 rounded-lg p-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="text-center mb-3">
+              <h4 className="text-sm font-semibold text-muted-foreground">LIVE BETTING LINES</h4>
+            </div>
+            <div className="grid grid-cols-2 gap-6">
               <div className="text-center">
-                <div className="text-xs text-muted-foreground mb-1">SPREAD</div>
-                <div className="font-bold flex items-center justify-center gap-1">
-                  {currentSpread > 0 ? '+' : ''}{currentSpread}
-                  <TrendingUp className="w-3 h-3 text-green-500" />
+                <div className="text-xs text-muted-foreground mb-2 font-medium">POINT SPREAD</div>
+                <div className="font-bold text-lg flex items-center justify-center gap-2">
+                  <span className="text-primary">
+                    {currentSpread > 0 ? '+' : ''}{currentSpread}
+                  </span>
+                  <TrendingUp className="w-4 h-4 text-green-500" />
                 </div>
               </div>
               <div className="text-center">
-                <div className="text-xs text-muted-foreground mb-1">TOTAL</div>
-                <div className="font-bold flex items-center justify-center gap-1">
-                  O/U {currentTotal}
-                  <TrendingDown className="w-3 h-3 text-red-500" />
+                <div className="text-xs text-muted-foreground mb-2 font-medium">OVER/UNDER</div>
+                <div className="font-bold text-lg flex items-center justify-center gap-2">
+                  <span className="text-primary">
+                    {currentTotal}
+                  </span>
+                  <TrendingDown className="w-4 h-4 text-red-500" />
                 </div>
               </div>
             </div>
           </div>
 
           {/* Commentary */}
-          <div className="bg-primary/5 rounded-lg p-3 border-l-4 border-primary">
-            <div className="text-sm">
-              <div className="font-medium text-primary mb-1">🦍 Gorilla Analysis</div>
-              <p className="text-muted-foreground">{game.commentary}</p>
+          <div className="bg-jungle/5 rounded-lg p-4 border-l-4 border-jungle">
+            <div className="space-y-2">
+              <div className="font-semibold text-jungle flex items-center gap-2">
+                🦍 <span>Gorilla Analysis</span>
+              </div>
+              <p className="text-muted-foreground leading-relaxed text-sm">
+                {game.commentary}
+              </p>
             </div>
           </div>
 
