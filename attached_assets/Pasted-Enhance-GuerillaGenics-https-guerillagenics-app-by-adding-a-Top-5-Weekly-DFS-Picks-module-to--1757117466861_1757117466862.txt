@@ -1,0 +1,186 @@
+Enhance GuerillaGenics (https://guerillagenics.app/) by adding a “Top 5 Weekly DFS Picks” module to the existing /weekly-picks page. This feature must use the current, live NFL schedule and current rosters, select 5 offensive superstar players (QB/RB/WR/TE only, league-wide), and update automatically each week. It must never include defensive or special teams players.
+
+---
+
+🎯 Goals
+- Surface a dynamic “Top 5 Weekly DFS Picks” panel based on the current NFL week’s schedule and live rosters.
+- Only offensive positions: QB, RB, WR, TE. No defensive/special-teams players anywhere.
+- Use live schedule and roster data at runtime (no hardcoded matchups or player lists).
+- Integrate into /weekly-picks alongside existing game cards, odds, and picks.
+- Mobile-first, branded, with fast loading, progressive hydration, and resilient fallbacks.
+
+---
+
+🧭 Navigation & placement
+- Route: /weekly-picks
+- Add a new section at the top of the page: “Top 5 Weekly DFS Picks”
+- Keep existing Weekly Picks content below (matchups, odds, O/U leans, etc.)
+- Add badges for “Main Slate Eligible” and “Prime-Time” based on schedule
+
+---
+
+🧩 Data sources (adapter-driven)
+- Schedule provider (current week at runtime; no static lists):
+  - Primary: ESPN NFL scoreboard JSON
+  - Secondary fallback: TheSportsDB or MySportsFeeds
+- Roster + player meta provider:
+  - Primary: Sleeper API (positions, team, status, popularity trend)
+  - Secondary: SportsData.io (requires key)
+- Odds provider:
+  - Primary: The Odds API (spreads/totals for context)
+  - Fallback: compatible alternative
+- Optional news/injury blurbs:
+  - Public team reports or provider-specific status endpoints when available
+
+All providers must be implemented via adapters returning normalized data contracts (see below). Controlled by environment variables.
+
+---
+
+📐 Data contracts
+- ScheduleGame:
+  { id, week, startTimeISO, status, away: { id, name, abbr }, home: { id, name, abbr }, isPrimeTime: boolean, tv?: string }
+- PlayerMeta:
+  { id, name, teamId, teamAbbr, positions: string[], status: "active"|"inactive"|"out"|"questionable", popularityScore?: number, salaryDK?: number, salaryFD?: number, projPoints?: number, lastSeasonYds?: number, lastSeasonTD?: number, headshotUrl?: string }
+- OddsSnapshot:
+  { gameId, total: number, spread: { home: number, away: number }, lastUpdatedISO: string }
+- TopPick (computed):
+  { playerId, name, teamAbbr, position, matchup: "AWAY @ HOME", kickoffEt: string, slate: "Main"|"Prime", ggScore: number, confidence: 0-100, commentary: string }
+
+---
+
+🧮 Selection & scoring logic (offense-only, transparent)
+1) Candidate pool
+   - Pull all active players from PlayerMeta for the current week’s teams (from live schedule).
+   - Filter positions strictly to: QB, RB, WR, TE.
+   - Drop any player with positions including: K, P, LS, DL, DE, DT, EDGE, LB, CB, S, DB, or any special-teams/defense tag.
+   - Exclude “out” or suspended players. If “questionable,” downgrade but allow.
+
+2) Feature engineering per candidate (compute fields if not provided):
+   - Opponent pace and implied total proxy: use game total (OddsSnapshot.total) as proxy for environment
+   - Usage proxy: combine lastSeasonYds, lastSeasonTD, projected usage (if available), and popularityScore
+   - Positional premium: QB > WR > RB > TE (weights below)
+   - Slate tag: mark “Prime” if isPrimeTime; otherwise “Main”
+
+3) GG score (0–100)
+   - base = 50
+   - positional weight: +12 (QB), +10 (WR), +9 (RB), +7 (TE)
+   - usage/popularity: +min(round(popularityScore * 10), 12) if available; else +5 for known stars list
+   - environment: +0 to +10 based on game total percentile (higher total → higher bump)
+   - injury/status: -8 if questionable, -15 if limited (if detectable), -25 if doubtful; “out” must be excluded
+   - matchup tilt (optional): +0 to +8 if opponent allowed high yards/TDs last season (if available)
+   - clamp 0–100 and round
+   - confidence: 55–64 Low, 65–79 Moderate, 80+ High
+
+4) Top 5 selection
+   - Rank candidates by ggScore
+   - Enforce diversity rule: at least 3 different teams represented; at most 2 players per team
+   - Prefer Main Slate when tie-breaking; if two equal, prefer earlier kickoff ET
+   - Output the Top 5
+
+5) Commentary (mascot-flavored, concise)
+   - QB archetype: “Tempo + deep shots → ceiling within reach.”
+   - WR archetype: “Alpha target share vs soft boundary — bananas incoming.”
+   - RB archetype: “Workhorse + goal-line equity — juice is ripe.”
+   - TE archetype: “Seam leverage vs zone — red-zone paws ready.”
+
+---
+
+🖼️ UI/UX requirements
+- Top section: “Top 5 Weekly DFS Picks”
+  - Card for each TopPick with:
+    - Headshot (if available), name, teamAbbr, position badge
+    - Matchup and kickoff time (ET)
+    - ggScore as a radial or bar meter + confidence band
+    - Slate badge: Main or Prime
+    - One-line commentary
+- Tap/click a card → reveal quick context:
+  - Team stack suggestions (e.g., QB + WR1)
+  - Correlated O/U lean (if total high, suggest Over correlation; if low, caution)
+- Performance:
+  - Progressive rendering (skeletons), lazy-load images, sub-50ms main-thread work per render where possible
+- Brand:
+  - Palette: #0B3D2E (jungle), #FFD447 (banana), #C53030 (action red), #16A34A (vine green)
+  - Loading state: “🦍 Peeling the data bananas…”
+  - Fallback: “Data is swinging in late — check back soon!”
+
+---
+
+🗂️ Structure
+/src
+  /pages
+    WeeklyPicks.jsx          # adds Top 5 module at top
+  /components
+    TopFivePanel.jsx         # renders the five superstar cards
+    TopPickCard.jsx
+    OddsTicker.jsx
+    LoadingScreen.jsx
+    FallbackContent.jsx
+    NewsletterCTA.jsx
+    Disclaimer.jsx
+  /adapters
+    scheduleEspn.js
+    scheduleTheSportsDb.js
+    scheduleMsf.js
+    playersSleeper.js
+    playersSportsdata.js
+    oddsTheOddsApi.js
+    index.js                 # adapter registry per env
+  /services
+    topFiveService.js        # builds candidate pool, scores, selects Top 5
+    cache.js
+  /utils
+    timeEt.js
+    scoring.js               # ggScore + confidence helpers
+    strings.js               # commentary templates
+/server
+  index.js
+  routes/health.js
+  routes/weeklyTopFive.js    # GET /api/top5?week=NN
+  routes/week.js             # live schedule passthrough + cache
+  routes/odds.js
+  routes/players.js
+
+---
+
+🔌 Environment variables
+VITE_API_BASE=https://your-domain/api
+VITE_SUBSTACK_PUBLICATION=https://your-substack.substack.com
+SCHEDULE_PROVIDER=espn           # espn | tsdb | msf
+ODDS_PROVIDER=theoddsapi         # theoddsapi | fallback
+PLAYERS_PROVIDER=sleeper         # sleeper | sportsdata | fallback
+ODDS_API_KEY=xxxxx
+NFL_API_KEY=xxxxx                # if using tsdb/msf/sportsdata
+NODE_ENV=production
+
+---
+
+🧠 Backend endpoints
+- GET /api/health → { schedule:"ok"/"fail", odds:"ok"/"fail", players:"ok"/"fail" }
+- GET /api/week?number=auto|NN → ScheduleGame[] (auto resolves current week from date; caches 10–15 min)
+- GET /api/odds?week=NN → OddsSnapshot[] (TTL 30–60s)
+- GET /api/players/offense?teamId=XXX → PlayerMeta[] (positions filtered to QB/RB/WR/TE; cache 6h)
+- GET /api/top5?week=auto|NN → TopPick[] (computes with scoring rules; cache 5 min)
+
+All endpoints return normalized contracts. If primary provider fails, use next available adapter; log warnings and set “stale” flags when data age > TTL.
+
+---
+
+✅ Validation rules (must enforce)
+- Never include a player unless positions ⊆ {QB, RB, WR, TE}; hard filter in adapter and in service.
+- Exclude players with status “out” or suspended; handle “questionable” with scoring penalty.
+- Only render games from live schedule API; no static matchups. If unknown/tentative, render skeleton.
+- If odds older than 10 minutes, badge “Stale odds.”
+- Ensure Top 5 reflects current week (auto-detect based on date); allow manual override week selector.
+- UI must remain responsive on mobile; skeletons must render within 150ms.
+
+---
+
+🧪 Acceptance criteria
+- /weekly-picks shows “Top 5 Weekly DFS Picks” at the top with five offensive superstars from current week only.
+- All five are offense-only (QB/RB/WR/TE), sourced from current rosters and current-week schedule.
+- Top 5 are computed at runtime from live data (no hardcoded player lists); selection uses ggScore and confidence bands.
+- Content updates when week changes and when data refresh triggers.
+- Progressive rendering with branded loading and graceful fallback to last-known cache.
+- Matches GuerillaGenics brand voice, colors, and interaction style.
+
+Ship a complete, runnable enhancement that integrates the Top 5 module into /weekly-picks, uses live schedule and roster data, enforces offense-only eligibility, and updates automatically each week.
