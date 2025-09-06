@@ -60,7 +60,7 @@ export default function FreePickModal({ onClaimPick, onMaybeLater }: FreePickMod
       <AnimatePresence>
         {isOpen && (
           <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogContent className="sm:max-w-md border-2 border-primary/20 bg-gradient-to-br from-background via-primary/5 to-secondary/10">
+            <DialogContent className="sm:max-w-md border-2 border-primary/20 bg-gradient-to-br from-background via-primary/5 to-secondary/10" aria-describedby="free-pick-description">
               <DialogHeader>
                 <div className="flex items-center justify-between">
                   <DialogTitle className="flex items-center gap-2 text-xl font-bold">

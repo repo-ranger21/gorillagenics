@@ -1623,6 +1623,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
   
+  app.post('/api/analytics/event', (req, res) => {
+    // Track analytics event (in production, save to database)
+    const { eventType, meta, timestamp } = req.body;
+    console.log(`📊 Analytics Event: ${eventType}`, meta);
+    res.status(200).json({ success: true });
+  });
+  
   // Mock referrals endpoints
   app.get('/api/referrals/stats', (req, res) => {
     res.json({
