@@ -10,6 +10,7 @@ import { RecommendationEngine, type UserProfile } from "./services/recommendatio
 import { dataScheduler } from "./services/data-scheduler";
 import { dataIntegrationService } from "./services/data-integration";
 import { webScrapingService } from "./services/web-scrapers";
+import Stripe from 'stripe';
 // @ts-ignore
 import { ScheduleEspnAdapter } from "./adapters/scheduleEspn.js";
 // @ts-ignore  
@@ -24,6 +25,14 @@ import { CacheService } from "./services/cache.js";
 import { handleTopFiveRequest, handleHealthCheck } from "./routes/weeklyTopFive.js";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Initialize Stripe
+  if (!process.env.STRIPE_SECRET_KEY) {
+    console.warn('🦍 Warning: STRIPE_SECRET_KEY not found. Stripe functionality will be disabled.');
+  }
+  const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY, {
+    apiVersion: '2024-06-20',
+  }) : null;
+
   // Initialize live data providers for production-ready Weekly Picks
   const cache = new CacheService();
   const scheduleProvider = new ScheduleEspnAdapter();
@@ -1736,6 +1745,134 @@ Allow: /
 Sitemap: https://${req.hostname}/sitemap.xml`;
     res.set('Content-Type', 'text/plain');
     res.send(robots);
+  });
+
+  // 💳 STRIPE SUBSCRIPTION ENDPOINTS
+  
+  // Create Stripe checkout session for Jungle Access subscription
+  app.post('/api/create-checkout-session', async (req, res) => {
+    if (!stripe) {
+      return res.status(500).json({ error: 'Stripe not configured' });
+    }
+    
+    try {
+      const { userId } = req.body;
+      
+      // Create checkout session for $10/month subscription
+      const session = await stripe.checkout.sessions.create({
+        mode: 'subscription',
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: 'Jungle Access 🦍',
+                description: 'Full access to Weekly Picks, Top 5 DFS, and Juice Watch alerts',
+                images: [`https://${req.hostname}/icons/gorilla-subscription.png`],
+              },
+              unit_amount: 1000, // $10.00
+              recurring: {
+                interval: 'month',
+              },
+            },
+            quantity: 1,
+          },
+        ],
+        success_url: `https://${req.hostname}/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `https://${req.hostname}/cancel`,
+        metadata: {
+          userId: userId?.toString() || 'guest',
+        },
+      });
+      
+      console.log('🦍 Created Stripe checkout session:', session.id);
+      res.json({ sessionId: session.id, url: session.url });
+    } catch (error) {
+      console.error('❌ Stripe checkout error:', error);
+      res.status(500).json({ error: 'Failed to create checkout session' });
+    }
+  });
+  
+  // Stripe webhook endpoint for subscription events
+  app.post('/api/webhook', async (req, res) => {
+    if (!stripe) {
+      return res.status(500).json({ error: 'Stripe not configured' });
+    }
+    
+    try {
+      const event = req.body;
+      
+      switch (event.type) {
+        case 'checkout.session.completed':
+          const session = event.data.object;
+          console.log('🦍 Subscription payment successful:', session.id);
+          
+          // Update user subscription status
+          if (session.metadata?.userId && session.metadata.userId !== 'guest') {
+            await storage.updateUserSubscription(parseInt(session.metadata.userId), {
+              stripeCustomerId: session.customer,
+              stripeSubscriptionId: session.subscription,
+              subscriptionStatus: 'active',
+              isSubscribed: true,
+              subscriptionEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+            });
+            console.log('🦍 Updated user subscription:', session.metadata.userId);
+          }
+          break;
+          
+        case 'customer.subscription.updated':
+        case 'customer.subscription.deleted':
+          const subscription = event.data.object;
+          console.log('🦍 Subscription status changed:', subscription.status);
+          
+          // Update subscription status in database
+          if (subscription.metadata?.userId) {
+            await storage.updateUserSubscription(parseInt(subscription.metadata.userId), {
+              subscriptionStatus: subscription.status,
+              isSubscribed: subscription.status === 'active',
+            });
+          }
+          break;
+          
+        default:
+          console.log('🦍 Unhandled Stripe event:', event.type);
+      }
+      
+      res.status(200).json({ received: true });
+    } catch (error) {
+      console.error('❌ Stripe webhook error:', error);
+      res.status(400).json({ error: 'Webhook error' });
+    }
+  });
+  
+  // Get user subscription status
+  app.get('/api/subscription/status/:userId', async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const user = await storage.getUser(parseInt(userId));
+      
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      
+      res.json({
+        isSubscribed: user.isSubscribed || false,
+        subscriptionStatus: user.subscriptionStatus || 'inactive',
+        subscriptionEndDate: user.subscriptionEndDate,
+      });
+    } catch (error) {
+      console.error('❌ Error fetching subscription status:', error);
+      res.status(500).json({ error: 'Failed to fetch subscription status' });
+    }
+  });
+  
+  // Placeholder for future Stripe Connect onboarding
+  app.post('/api/connect/onboard', async (req, res) => {
+    // Future: Set up Stripe Connect for contributor payouts and referral rewards
+    res.status(501).json({ 
+      message: 'Stripe Connect integration coming soon for contributor payouts!' 
+    });
   });
 
   // Initialize live data and start scheduler in development

@@ -15,6 +15,15 @@ export const users = pgTable("users", {
   winRate: real("win_rate").default(0.5), // Track success rate
   totalBets: integer("total_bets").default(0),
   preferences: text("preferences"), // JSON object for additional preferences
+  // Stripe subscription fields
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  subscriptionStatus: text("subscription_status").default('inactive'), // inactive, active, past_due, canceled
+  subscriptionEndDate: timestamp("subscription_end_date"),
+  isSubscribed: boolean("is_subscribed").default(false),
+  // Referral tracking for Stripe Connect future
+  referralCode: text("referral_code"),
+  referredBy: integer("referred_by"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
