@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Gift, X, Sparkles } from 'lucide-react';
 import { shouldShowFreePickModal, dismissModal, grantFreePick, trackEvent, getFreePicksRemaining } from '@/modules/funnel/clientFunnel';
+import SubscribeButton from '@/components/SubscribeButton';
 
 interface FreePickModalProps {
   onClaimPick?: () => void;
@@ -143,10 +144,21 @@ export default function FreePickModal({ onClaimPick, onMaybeLater }: FreePickMod
                     Claim Free Pick
                   </Button>
                   
+                  <div className="text-center text-sm text-muted-foreground">
+                    — or unlock unlimited access —
+                  </div>
+                  
+                  <SubscribeButton 
+                    fullWidth
+                    size="md"
+                    showBadge
+                    className="w-full"
+                  />
+                  
                   <Button
                     variant="ghost"
                     onClick={handleMaybeLater}
-                    className="w-full text-muted-foreground hover:text-foreground"
+                    className="w-full text-muted-foreground hover:text-foreground text-sm"
                     data-testid="maybe-later"
                   >
                     Maybe Later

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Lock, X, Crown, Zap, TrendingUp } from 'lucide-react';
 import { shouldShowUnlockBanner, dismissBanner, trackEvent, getFreePicksRemaining } from '@/modules/funnel/clientFunnel';
+import SubscribeButton from '@/components/SubscribeButton';
 
 interface UnlockBannerProps {
   position?: 'top' | 'bottom';
@@ -84,14 +85,11 @@ export default function UnlockBanner({ position = 'top', onSubscribeClick }: Unl
                 </Badge>
               )}
               
-              <Button
-                onClick={handleSubscribe}
+              <SubscribeButton 
                 size="sm"
-                className="bg-yellow-400 hover:bg-yellow-500 text-yellow-900 font-semibold px-4 py-2 text-sm"
-                data-testid="unlock-subscribe-button"
-              >
-                $10/month on Substack
-              </Button>
+                variant="secondary"
+                className="bg-yellow-400 hover:bg-yellow-500 text-yellow-900 border-yellow-500"
+              />
               
               <Button
                 variant="ghost"

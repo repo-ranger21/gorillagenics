@@ -6,9 +6,10 @@ import { randomUUID } from "crypto";
 // you might need
 
 export interface IStorage {
-  getUser(id: string): Promise<User | undefined>;
+  getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUserSubscription(id: number, updates: Partial<User>): Promise<User | undefined>;
   
   // Player operations
   getAllPlayers(): Promise<Player[]>;
@@ -40,8 +41,8 @@ export class MemStorage implements IStorage {
     this.pushSubscriptions = new Set();
   }
 
-  async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+  async getUser(id: number): Promise<User | undefined> {
+    return this.users.get(id.toString());
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
@@ -52,9 +53,35 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = Math.floor(Math.random() * 1000000); // Generate numeric ID
-    const user: User = { ...insertUser, id };
+    const user: User = { 
+      ...insertUser, 
+      id,
+      // Set default subscription values
+      stripeCustomerId: null,
+      stripeSubscriptionId: null,
+      subscriptionStatus: 'inactive',
+      subscriptionEndDate: null,
+      isSubscribed: false,
+      referralCode: null,
+      referredBy: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
     this.users.set(id.toString(), user);
     return user;
+  }
+
+  async updateUserSubscription(id: number, updates: Partial<User>): Promise<User | undefined> {
+    const user = await this.getUser(id);
+    if (!user) return undefined;
+
+    const updatedUser: User = { 
+      ...user, 
+      ...updates,
+      updatedAt: new Date(),
+    };
+    this.users.set(id.toString(), updatedUser);
+    return updatedUser;
   }
 
   // Player operations
