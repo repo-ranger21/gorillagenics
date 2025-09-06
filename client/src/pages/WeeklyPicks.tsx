@@ -14,6 +14,7 @@ import WeeklyPickCard from "@/components/WeeklyPickCard";
 import NewsletterCTA from "@/components/NewsletterCTA";
 import LoadingScreen from "@/components/LoadingScreen";
 import FallbackContent from "@/components/FallbackContent";
+import { TopFivePanel } from "@/components/TopFivePanel";
 
 // @ts-ignore
 import { 
@@ -236,6 +237,9 @@ export default function WeeklyPicks() {
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
+        {/* Top 5 Weekly DFS Picks */}
+        <TopFivePanel />
+        
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-3 space-y-6">

@@ -20,6 +20,8 @@ import { PlayersSleeperAdapter } from "./adapters/playersSleeper.js";
 import { PredictionsService } from "./services/predictions.js";
 // @ts-ignore
 import { CacheService } from "./services/cache.js";
+// @ts-ignore
+import { handleTopFiveRequest, handleHealthCheck } from "./routes/weeklyTopFive.js";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize live data providers for production-ready Weekly Picks
@@ -1080,6 +1082,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+
+  // Top 5 Weekly DFS Picks endpoints
+  app.get('/api/top5', handleTopFiveRequest);
+  app.get('/api/health', handleHealthCheck);
 
   const httpServer = createServer(app);
   
