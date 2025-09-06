@@ -219,10 +219,21 @@ export default function PersonalizedRecommendations({ players }: PersonalizedRec
   };
 
   const calculateBetSize = (score: number, profile: UserProfile): number => {
-    const confidence = score / 100;
+    // Input validation
+    if (!profile || typeof profile.bankrollSize !== 'number' || profile.bankrollSize <= 0) {
+      console.warn('🦍 Invalid bankroll size, using default bet size');
+      return 25; // Default minimum bet
+    }
+    
+    if (typeof score !== 'number' || score < 0 || score > 100) {
+      console.warn('🦍 Invalid score for bet calculation');
+      return 25;
+    }
+    
+    const confidence = Math.max(0, Math.min(1, score / 100));
     let suggestedSize = profile.bankrollSize * (confidence * 0.05); // Max 5% of bankroll
-    suggestedSize = Math.min(suggestedSize, profile.maxBetSize);
-    return Math.max(Math.round(suggestedSize), 1);
+    suggestedSize = Math.min(suggestedSize, profile.maxBetSize || profile.bankrollSize * 0.1);
+    return Math.max(Math.round(suggestedSize), 10); // Minimum $10 betth.round(suggestedSize), 1);
   };
 
   return (

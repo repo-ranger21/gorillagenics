@@ -36,7 +36,7 @@ export function generatePersonalizedStrategy(userProfile, gameData, marketCondit
 
 function analyzeGameForStrategy(game, userProfile, marketConditions) {
   const { riskTolerance, bettingStyle, avoidanceFactors, preferredBets } = userProfile;
-  
+
   let confidence = 0;
   let recommendedBets = [];
   let reasoning = [];
@@ -105,7 +105,7 @@ function analyzeGameForStrategy(game, userProfile, marketConditions) {
 
 function analyzeBioBoostForUser(bioBoost, bettingStyle) {
   const score = bioBoost.score || 50;
-  
+
   switch (bettingStyle) {
     case 'value':
       // Value bettors look for market inefficiencies
@@ -116,7 +116,7 @@ function analyzeBioBoostForUser(bioBoost, bettingStyle) {
         };
       }
       return { confidence: 0, reason: 'No clear value detected' };
-      
+
     case 'contrarian':
       // Contrarian bettors fade the public
       if (score >= 45 && score <= 55) {
@@ -126,7 +126,7 @@ function analyzeBioBoostForUser(bioBoost, bettingStyle) {
         };
       }
       return { confidence: 0, reason: 'Not a contrarian spot' };
-      
+
     case 'sharp':
       // Sharp bettors focus on high-confidence edges
       if (score > 70 || score < 30) {
@@ -136,7 +136,7 @@ function analyzeBioBoostForUser(bioBoost, bettingStyle) {
         };
       }
       return { confidence: 0, reason: 'Edge not strong enough for sharp play' };
-      
+
     case 'balanced':
     default:
       // Balanced approach considers moderate edges
@@ -161,7 +161,7 @@ function checkAvoidanceFactors(game, avoidanceFactors) {
           };
         }
         break;
-        
+
       case 'divisional':
         // Mock divisional check (in real app, would check team divisions)
         if (Math.random() < 0.25) { // 25% chance it's divisional
@@ -171,7 +171,7 @@ function checkAvoidanceFactors(game, avoidanceFactors) {
           };
         }
         break;
-        
+
       case 'weather':
         if (game.bioBoost.factors?.weather?.windMph > 20 || 
             game.bioBoost.factors?.weather?.precipChance > 70) {
@@ -181,7 +181,7 @@ function checkAvoidanceFactors(game, avoidanceFactors) {
           };
         }
         break;
-        
+
       case 'travel':
         if (game.bioBoost.factors?.travelMiles > 2000) {
           return {
@@ -192,25 +192,25 @@ function checkAvoidanceFactors(game, avoidanceFactors) {
         break;
     }
   }
-  
+
   return { shouldAvoid: false };
 }
 
 function analyzeSpread(game, userProfile) {
   const bioBoost = game.bioBoost.score || 50;
   const spread = Math.abs(game.awayTeam.spreadValue);
-  
+
   let confidence = 0;
   let side = '';
   let reasoning = '';
-  
+
   // Large spreads with strong BioBoost signals
   if (spread >= 7 && bioBoost > 65) {
     confidence = 15;
     side = game.awayTeam.spreadValue > 0 ? game.awayTeam.abbreviation : game.homeTeam.abbreviation;
     reasoning = `Large spread with strong BioBoost (${bioBoost}) favoring ${side}`;
   }
-  
+
   // Small spreads with moderate signals
   else if (spread <= 3 && (bioBoost > 55 || bioBoost < 45)) {
     confidence = 10;
@@ -219,7 +219,7 @@ function analyzeSpread(game, userProfile) {
       (game.awayTeam.spreadValue > 0 ? game.awayTeam.abbreviation : game.homeTeam.abbreviation);
     reasoning = `Close spread with BioBoost lean (${bioBoost}) toward ${side}`;
   }
-  
+
   return {
     type: 'spread',
     recommended: confidence > 0,
@@ -234,10 +234,10 @@ function analyzeTotal(game, userProfile) {
   const bioBoost = game.bioBoost.score || 50;
   const total = game.overUnder;
   const recommendation = game.bioBoost.recommendation;
-  
+
   let confidence = 0;
   let reasoning = '';
-  
+
   // Strong BioBoost signals on totals
   if (bioBoost > 70 && recommendation === 'OVER') {
     confidence = 18;
@@ -246,7 +246,7 @@ function analyzeTotal(game, userProfile) {
     confidence = 18;
     reasoning = `Strong UNDER signal - BioBoost ${bioBoost} with ${total} total`;
   }
-  
+
   // Moderate signals
   else if (bioBoost > 60 && recommendation === 'OVER') {
     confidence = 12;
@@ -255,7 +255,7 @@ function analyzeTotal(game, userProfile) {
     confidence = 12;
     reasoning = `Moderate UNDER lean - BioBoost ${bioBoost}`;
   }
-  
+
   return {
     type: 'total',
     recommended: confidence > 0,
@@ -269,17 +269,17 @@ function analyzeTotal(game, userProfile) {
 function analyzeMoneyline(game, userProfile) {
   const bioBoost = game.bioBoost.score || 50;
   const { riskTolerance } = userProfile;
-  
+
   // Only recommend moneylines for conservative players on heavy favorites
   // or aggressive players on strong underdogs with good BioBoost
-  
+
   let confidence = 0;
   let side = '';
   let reasoning = '';
-  
+
   const awaySpread = game.awayTeam.spreadValue;
   const homeSpread = game.homeTeam.spreadValue;
-  
+
   if (riskTolerance === 'conservative') {
     // Heavy favorites with good BioBoost
     if (awaySpread < -6 && bioBoost > 65) {
@@ -303,7 +303,7 @@ function analyzeMoneyline(game, userProfile) {
       reasoning = `Aggressive ML play: Underdog with exceptional BioBoost ${bioBoost}`;
     }
   }
-  
+
   return {
     type: 'moneyline',
     recommended: confidence > 0,
@@ -332,13 +332,50 @@ function getMaxRecommendations(riskTolerance) {
 }
 
 function adjustConfidenceForRisk(confidence, riskTolerance) {
-  switch (riskTolerance) {
-    case 'conservative': return confidence * 0.8; // More conservative
-    case 'aggressive': return confidence * 1.2; // More aggressive
-    case 'medium':
-    default: 
-      return confidence;
+  // Input validation
+  if (typeof confidence !== 'number' || confidence < 0 || confidence > 100) {
+    console.warn('🦍 Invalid confidence score, using default');
+    confidence = 50;
   }
+
+  const adjustments = {
+    'low': -10,
+    'medium': 0, 
+    'high': +5
+  };
+
+  const adjustment = adjustments[riskTolerance] || 0;
+  return Math.max(0, Math.min(100, confidence + adjustment));
+}
+
+function validateBankrollManagement(userProfile, recommendedBetSize) {
+  const { bankrollSize, maxBetSize, totalWeeklyLimit } = userProfile;
+
+  // Responsible gambling checks
+  if (recommendedBetSize > bankrollSize * 0.1) {
+    console.warn('🦍 Bet size exceeds 10% of bankroll - reducing');
+    return bankrollSize * 0.05; // Cap at 5%
+  }
+
+  if (maxBetSize && recommendedBetSize > maxBetSize) {
+    console.warn('🦍 Bet size exceeds user maximum - capping');
+    return maxBetSize;
+  }
+
+  // Weekly limit check (would need session storage)
+  const weeklySpent = getWeeklySpending(userProfile.userId); // Implement this
+  if (totalWeeklyLimit && (weeklySpent + recommendedBetSize) > totalWeeklyLimit) {
+    console.warn('🦍 Bet would exceed weekly limit');
+    return Math.max(0, totalWeeklyLimit - weeklySpent);
+  }
+
+  return recommendedBetSize;
+}
+
+function getWeeklySpending(userId) {
+  // This should track actual weekly spending
+  // For now, return 0 as placeholder
+  return 0;
 }
 
 function calculateBankrollAllocation(strategies, userProfile) {
@@ -346,20 +383,34 @@ function calculateBankrollAllocation(strategies, userProfile) {
   const totalUnits = strategies.reduce((sum, strategy) => 
     sum + strategy.bankrollRecommendation, 0
   );
+
+  // Apply bankroll validation to each recommended bet size
+  const validatedAllocations = strategies.map(strategy => {
+    const validatedSize = validateBankrollManagement(userProfile, strategy.bankrollRecommendation * userProfile.unitSize);
+    return {
+      ...strategy,
+      bankrollRecommendation: validatedSize / userProfile.unitSize // convert back to units
+    };
+  });
   
+  const validatedTotalUnits = validatedAllocations.reduce((sum, strategy) => 
+    sum + strategy.bankrollRecommendation, 0
+  );
+
+
   return {
-    totalUnits,
-    totalRisk: (totalUnits * unitSize),
-    riskPercentage: ((totalUnits * unitSize) / bankrollSize) * 100,
-    recommendation: totalUnits <= 5 ? 'Conservative allocation' :
-                   totalUnits <= 8 ? 'Moderate allocation' : 'Aggressive allocation'
+    totalUnits: validatedTotalUnits,
+    totalRisk: (validatedTotalUnits * unitSize),
+    riskPercentage: ((validatedTotalUnits * unitSize) / bankrollSize) * 100,
+    recommendation: validatedTotalUnits <= 5 ? 'Conservative allocation' :
+                   validatedTotalUnits <= 8 ? 'Moderate allocation' : 'Aggressive allocation'
   };
 }
 
 function assessOverallRisk(strategies) {
   const avgConfidence = strategies.reduce((sum, s) => sum + s.overallConfidence, 0) / strategies.length;
   const highRiskCount = strategies.filter(s => s.riskLevel === 'high').length;
-  
+
   return {
     level: highRiskCount > 2 ? 'high' : avgConfidence > 70 ? 'moderate' : 'low',
     description: `${strategies.length} recommended bets with ${avgConfidence.toFixed(0)}% avg confidence`
@@ -369,29 +420,29 @@ function assessOverallRisk(strategies) {
 function generatePersonalizedTips(userProfile, strategies) {
   const tips = [];
   const { riskTolerance, experience, bettingStyle } = userProfile;
-  
+
   if (experience === 'beginner') {
     tips.push('🎓 Start with smaller unit sizes until you build confidence');
     tips.push('📚 Focus on learning one bet type well before expanding');
   }
-  
+
   if (riskTolerance === 'conservative' && strategies.length > 3) {
     tips.push('🛡️ Consider reducing bet count to maintain conservative approach');
   }
-  
+
   if (bettingStyle === 'value' && strategies.filter(s => s.overallConfidence > 80).length === 0) {
     tips.push('💎 No high-value spots found - consider waiting for better opportunities');
   }
-  
+
   tips.push('🦍 Remember: BioBoost scores are one factor - trust your research!');
-  
+
   return tips;
 }
 
 function calculateRiskLevel(game, bets) {
   const hasMoneyline = bets.some(bet => bet.type === 'moneyline');
   const avgConfidence = bets.reduce((sum, bet) => sum + bet.confidence, 0) / bets.length;
-  
+
   if (hasMoneyline || avgConfidence < 40) return 'high';
   if (avgConfidence > 70) return 'low';
   return 'moderate';
@@ -407,16 +458,16 @@ function calculateExpectedValue(bets, game) {
 function calculateBetSize(confidence, userProfile) {
   const { riskTolerance, unitSize, bankrollSize } = userProfile;
   const baseSize = unitSize / bankrollSize; // Base percentage
-  
+
   // Kelly-inspired sizing based on confidence
   const confidentMultiplier = Math.min(confidence / 50, 2); // Max 2x multiplier
-  
+
   let recommendedUnits = Math.max(0.5, confidentMultiplier);
-  
+
   // Risk tolerance adjustment
   if (riskTolerance === 'conservative') recommendedUnits *= 0.7;
   if (riskTolerance === 'aggressive') recommendedUnits *= 1.3;
-  
+
   return Math.min(recommendedUnits, 3); // Cap at 3 units
 }
 
@@ -431,7 +482,7 @@ export const DEFAULT_PROFILES = {
     avoidanceFactors: ['weather', 'travel'],
     experience: 'intermediate'
   },
-  
+
   balanced: {
     riskTolerance: 'medium',
     bettingStyle: 'balanced',
@@ -441,7 +492,7 @@ export const DEFAULT_PROFILES = {
     avoidanceFactors: [],
     experience: 'intermediate'
   },
-  
+
   aggressive: {
     riskTolerance: 'aggressive',
     bettingStyle: 'sharp',

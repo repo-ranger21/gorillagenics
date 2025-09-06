@@ -10,7 +10,6 @@ import { RecommendationEngine, type UserProfile } from "./services/recommendatio
 import { dataScheduler } from "./services/data-scheduler";
 import { dataIntegrationService } from "./services/data-integration";
 import { webScrapingService } from "./services/web-scrapers";
-import Stripe from 'stripe';
 // @ts-ignore
 import { ScheduleEspnAdapter } from "./adapters/scheduleEspn.js";
 // @ts-ignore  
@@ -23,32 +22,44 @@ import { PredictionsService } from "./services/predictions.js";
 import { CacheService } from "./services/cache.js";
 // @ts-ignore
 import { handleTopFiveRequest, handleHealthCheck } from "./routes/weeklyTopFive.js";
+import { body, param, query, validationResult } from "express-validator";
+import rateLimit from "express-rate-limit";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Initialize Stripe
-  if (!process.env.STRIPE_SECRET_KEY) {
-    console.warn('🦍 Warning: STRIPE_SECRET_KEY not found. Stripe functionality will be disabled.');
-  }
-  const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY, {
-    apiVersion: '2024-06-20',
-  }) : null;
-
   // Initialize live data providers for production-ready Weekly Picks
   const cache = new CacheService();
   const scheduleProvider = new ScheduleEspnAdapter();
   const oddsProvider = new OddsTheOddsApiAdapter(process.env.ODDS_API_KEY);
   const playersProvider = new PlayersSleeperAdapter();
   const predictionsService = new PredictionsService();
-  
+
   // API routes for GuerillaGenics platform
 
+  // Add rate limiting to all routes
+  const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limit each IP to 100 requests per windowMs
+    message: "Too many requests from this IP, please try again after 15 minutes"
+  });
+  app.use(apiLimiter);
+
+  // Add input validation middleware for specific routes
+  const validatePlayerRequest = [
+    query('refresh').optional().isString().isIn(['true', 'false']),
+    query('withOdds').optional().isString().isIn(['true', 'false'])
+  ];
+
   // Get all players with BioBoost data and live betting odds
-  app.get("/api/players", async (req, res) => {
+  app.get("/api/players", validatePlayerRequest, async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
     try {
       const { refresh, withOdds } = req.query;
       const forceRefresh = refresh === 'true';
       const includeOdds = withOdds === 'true';
-      
+
       let players;
       if (includeOdds) {
         // Get players enhanced with live betting odds
@@ -57,7 +68,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Get players without odds integration
         players = await livePlayerService.refreshPlayerData(forceRefresh);
       }
-      
+
       res.json(players);
     } catch (error) {
       console.error("Error fetching players:", error);
@@ -66,19 +77,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get single player by ID
-  app.get("/api/players/:id", async (req, res) => {
-    try {
-      // First try to refresh live data, then get specific player
-      await livePlayerService.refreshPlayerData();
-      const player = await storage.getPlayer(req.params.id);
-      if (!player) {
-        return res.status(404).json({ message: "Player not found" });
+  app.get("/api/players/:id", 
+    [
+      param('id').isString().notEmpty(),
+    ],
+    async (req, res) => {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
       }
-      res.json(player);
-    } catch (error) {
-      console.error("Error fetching player:", error);
-      res.status(500).json({ message: "Failed to fetch player" });
-    }
+      try {
+        // First try to refresh live data, then get specific player
+        await livePlayerService.refreshPlayerData();
+        const player = await storage.getPlayer(req.params.id);
+        if (!player) {
+          return res.status(404).json({ message: "Player not found" });
+        }
+        res.json(player);
+      } catch (error) {
+        console.error("Error fetching player:", error);
+        res.status(500).json({ message: "Failed to fetch player" });
+      }
   });
 
   // Get all bio metrics
@@ -131,20 +150,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Import BioBoost calculator and injury calculator
       const { calculateBioBoost, generateRecommendation, generateGorillaCommentary, generateMockGameFactors } = await import('./utils/bioBoostCalculator.js');
       const { generateMockInjuries, calculateTeamInjuryImpact } = await import('./utils/injuryCalculator.js');
-      
+
       // Simulate live odds updates and calculate BioBoost scores
       const gamesWithBioBoost = week1Games.map(game => {
         // Generate mock factors for BioBoost calculation
         const factors = generateMockGameFactors(game.id);
-        
+
         // Generate mock injury data for both teams
         const awayInjuries = generateMockInjuries(game.awayTeam.abbreviation);
         const homeInjuries = generateMockInjuries(game.homeTeam.abbreviation);
-        
+
         // Calculate injury impact and integrate with factors
         const awayInjuryImpact = calculateTeamInjuryImpact(awayInjuries);
         const homeInjuryImpact = calculateTeamInjuryImpact(homeInjuries);
-        
+
         // Adjust BioBoost factors based on injury impact
         const injuryAdjustedFactors = {
           ...factors,
@@ -157,16 +176,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
             homeInjuries
           }
         };
-        
+
         // Calculate BioBoost score (0-100) using streamlined logic
         const bioBoostScore = calculateBioBoost(injuryAdjustedFactors);
-        
+
         // Generate recommendation
         const { recommendation, confidence } = generateRecommendation(bioBoostScore, game.overUnder);
-        
+
         // Generate satirical commentary
         const commentary = generateGorillaCommentary(game, bioBoostScore, recommendation);
-        
+
         // Simulate live odds updates
         const liveGame = {
           ...game,
@@ -193,10 +212,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
         };
-        
+
         return liveGame;
       });
-      
+
       res.json(gamesWithBioBoost);
     } catch (error) {
       console.error("Error fetching Week 1 games:", error);
@@ -205,7 +224,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Production-ready Live Data Endpoints for Weekly Picks
-  
+
   // Health check for all providers
   app.get('/api/health', async (req, res) => {
     const health = {
@@ -239,12 +258,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const cacheKey = `current_week`;
       let weekData = cache.get(cacheKey);
-      
+
       if (!weekData) {
         weekData = await scheduleProvider.getCurrentWeek();
         cache.set(cacheKey, weekData, 'schedule');
       }
-      
+
       res.json(weekData);
     } catch (error) {
       console.error('Current week fetch failed:', error);
@@ -253,7 +272,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const now = new Date();
       const diffDays = Math.ceil((now - seasonStart) / (1000 * 60 * 60 * 24));
       const currentWeek = Math.min(18, Math.max(1, Math.floor(diffDays / 7) + 1));
-      
+
       res.json({ 
         currentWeek,
         seasonStart: seasonStart.toISOString(),
@@ -268,15 +287,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const week = parseInt(req.query.number?.toString() || '1');
       const season = parseInt(req.query.season?.toString() || '2025');
-      
+
       const cacheKey = `schedule_${season}_${week}`;
       let schedule = cache.get(cacheKey);
-      
+
       if (!schedule) {
         schedule = await scheduleProvider.getWeekSchedule(week, season);
         cache.set(cacheKey, schedule, 'schedule');
       }
-      
+
       res.json(schedule);
     } catch (error) {
       console.error('Week schedule fetch failed:', error);
@@ -288,15 +307,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/odds', async (req, res) => {
     try {
       const week = parseInt(req.query.week?.toString() || '1');
-      
+
       const cacheKey = `odds_week_${week}`;
       let odds = cache.get(cacheKey);
-      
+
       if (!odds) {
         odds = await oddsProvider.getGameOdds();
         cache.set(cacheKey, odds, 'odds');
       }
-      
+
       res.json(odds);
     } catch (error) {
       console.error('Odds fetch failed:', error);
@@ -305,47 +324,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Featured offensive players only (QB/RB/WR/TE)
-  app.get('/api/players/offense', async (req, res) => {
-    try {
-      const teamId = req.query.teamId?.toString();
-      if (!teamId) {
-        return res.status(400).json({ message: 'teamId parameter required' });
+  app.get('/api/players/offense', 
+    [
+      query('teamId').isString().notEmpty()
+    ],
+    async (req, res) => {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
       }
-      
-      const cacheKey = `offense_${teamId}`;
-      let offense = cache.get(cacheKey);
-      
-      if (!offense) {
-        offense = await playersProvider.getFeaturedOffense(teamId);
-        // Strict validation: ensure no defensive players
-        if (offense?.players) {
-          offense.players = playersProvider.validateOffensiveOnly(offense.players);
+      try {
+        const teamId = req.query.teamId?.toString();
+        // if (!teamId) { // This check is now redundant due to validation middleware
+        //   return res.status(400).json({ message: 'teamId parameter required' });
+        // }
+
+        const cacheKey = `offense_${teamId}`;
+        let offense = cache.get(cacheKey);
+
+        if (!offense) {
+          offense = await playersProvider.getFeaturedOffense(teamId);
+          // Strict validation: ensure no defensive players
+          if (offense?.players) {
+            offense.players = playersProvider.validateOffensiveOnly(offense.players);
+          }
+          cache.set(cacheKey, offense, 'players');
         }
-        cache.set(cacheKey, offense, 'players');
+
+        res.json(offense);
+      } catch (error) {
+        console.error('Players fetch failed:', error);
+        res.status(500).json({ message: 'Failed to fetch offensive players' });
       }
-      
-      res.json(offense);
-    } catch (error) {
-      console.error('Players fetch failed:', error);
-      res.status(500).json({ message: 'Failed to fetch offensive players' });
-    }
   });
 
   // GuerillaGenics predictions with market analysis
   app.get('/api/picks', async (req, res) => {
     try {
       const week = parseInt(req.query.week?.toString() || '1');
-      
+
       const cacheKey = `picks_week_${week}`;
       let picks = cache.get(cacheKey);
-      
+
       if (!picks) {
         // Get live data for predictions
         const schedule = await scheduleProvider.getWeekSchedule(week);
         const odds = await oddsProvider.getGameOdds();
-        
+
         picks = [];
-        
+
         for (const game of schedule) {
           // Match game with odds by team names
           const gameOdds = odds.find(o => 
@@ -354,17 +381,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             (o.homeTeam?.includes(game.homeTeam.abbr) || 
              o.awayTeam?.includes(game.awayTeam.abbr))
           );
-          
+
           if (gameOdds) {
             const homeOffense = await playersProvider.getFeaturedOffense(game.homeTeam.id);
             const awayOffense = await playersProvider.getFeaturedOffense(game.awayTeam.id);
-            
+
             const pick = await predictionsService.generatePick(
               game, 
               gameOdds, 
               [homeOffense, awayOffense]
             );
-            
+
             picks.push({
               ...pick,
               game: {
@@ -379,10 +406,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             });
           }
         }
-        
+
         cache.set(cacheKey, picks, 'picks');
       }
-      
+
       res.json(picks);
     } catch (error) {
       console.error('Picks generation failed:', error);
@@ -676,21 +703,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/recommendations", async (req, res) => {
     try {
       console.log('🎯 Generating personalized betting recommendations...');
-      
+
       // Get current players data
       const players = await livePlayerService.getAllPlayers();
-      
+
       // Sample user profile (in production, this would come from user session/database)
       const sampleProfile: UserProfile = RecommendationEngine.generateSampleUserProfile();
-      
+
       // Generate personalized recommendations
       const recommendations = RecommendationEngine.generatePersonalizedRecommendations(
         players,
         sampleProfile
       );
-      
+
       console.log(`✅ Generated ${recommendations.length} personalized recommendations`);
-      
+
       res.json({
         recommendations,
         userProfile: sampleProfile,
@@ -732,12 +759,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/subscribe", async (req, res) => {
     try {
       const { email, paymentMethod } = req.body;
-      
+
       console.log('📧 Newsletter subscription request:', { email });
-      
+
       // In production, integrate with Stripe for payment processing
       // and save subscriber to database
-      
+
       // Simulate subscription processing
       const subscription = {
         id: `sub_${Date.now()}`,
@@ -749,7 +776,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         interval: 'month',
         created: new Date().toISOString()
       };
-      
+
       res.json({
         success: true,
         subscription,
@@ -768,7 +795,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/subscription/:email", async (req, res) => {
     try {
       const { email } = req.params;
-      
+
       // In production, check database for subscription status
       // For demo, return mock active subscription
       const subscription = {
@@ -778,7 +805,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         plan: 'premium',
         nextBilling: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
       };
-      
+
       res.json({ subscription });
     } catch (error) {
       console.error("Error fetching subscription:", error);
@@ -858,7 +885,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           commentary: "Cold weather grind. Expect conservative game plan."
         }
       ];
-      
+
       res.json(mockLines);
     } catch (error) {
       console.error("Error fetching lines:", error);
@@ -911,7 +938,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           type: "injury"
         }
       ];
-      
+
       res.json(mockAlerts);
     } catch (error) {
       console.error("Error fetching live bets:", error);
@@ -937,18 +964,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/notifications/subscribe", async (req, res) => {
     try {
       const { subscription } = req.body;
-      
+
       console.log('🔔 Push notification subscription received:', {
         endpoint: subscription.endpoint.substring(0, 50) + '...'
       });
-      
+
       // In production, save subscription to database
       // For now, store in memory (this would be lost on restart)
       if (!storage.pushSubscriptions) {
         storage.pushSubscriptions = new Set();
       }
       storage.pushSubscriptions.add(JSON.stringify(subscription));
-      
+
       res.json({ 
         success: true,
         message: "Successfully subscribed to push notifications" 
@@ -966,14 +993,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/notifications/unsubscribe", async (req, res) => {
     try {
       const { subscription } = req.body;
-      
+
       console.log('🔔 Push notification unsubscribe received');
-      
+
       // Remove subscription from storage
       if (storage.pushSubscriptions && subscription) {
         storage.pushSubscriptions.delete(JSON.stringify(subscription));
       }
-      
+
       res.json({ 
         success: true,
         message: "Successfully unsubscribed from push notifications" 
@@ -991,14 +1018,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/notifications/test", async (req, res) => {
     try {
       const { subscription } = req.body;
-      
+
       if (!subscription) {
         return res.status(400).json({ 
           success: false,
           message: "No subscription provided" 
         });
       }
-      
+
       // Send test notification
       const payload = {
         title: '🦍 GuerillaGenics Test Alert',
@@ -1010,13 +1037,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         requireInteraction: false,
         vibrate: [200, 100, 200, 100, 200]
       };
-      
+
       console.log('🔔 Sending test push notification');
-      
+
       // In production, use actual web-push library
       // For demo, just log and return success
       console.log('🔔 Test notification payload:', payload);
-      
+
       res.json({ 
         success: true,
         message: "Test notification sent successfully" 
@@ -1034,7 +1061,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/notifications/alert", async (req, res) => {
     try {
       const { playerId, alertType, message } = req.body;
-      
+
       const player = storage.getPlayer(playerId);
       if (!player) {
         return res.status(404).json({ 
@@ -1042,20 +1069,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: "Player not found" 
         });
       }
-      
+
       // Create alert notification payload
       const alertMessages = {
         zen_gorilla: 'Player metrics are stable and within normal range',
         alpha_ape: 'Significant BioBoost changes detected - opportunity alert!',
         full_bananas: 'CRITICAL ALERT: Major performance shift detected!'
       };
-      
+
       const alertEmojis = {
         zen_gorilla: '🧘',
         alpha_ape: '⚡',
         full_bananas: '🚨'
       };
-      
+
       const payload = {
         title: `${alertEmojis[alertType]} Juice Watch Alert: ${player.name}`,
         body: message || alertMessages[alertType],
@@ -1067,17 +1094,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         requireInteraction: alertType === 'full_bananas',
         vibrate: alertType === 'full_bananas' ? [300, 100, 300, 100, 300] : [200, 100, 200]
       };
-      
+
       console.log('🔔 Triggering Juice Watch alert:', {
         player: player.name,
         type: alertType,
         subscriptions: storage.pushSubscriptions?.size || 0
       });
-      
+
       // In production, send to all subscribed users
       // For demo, just log the alert
       console.log('🔔 Alert notification payload:', payload);
-      
+
       res.json({ 
         success: true,
         message: `Juice Watch alert triggered for ${player.name}`,
@@ -1100,7 +1127,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/top-five", async (req, res) => {
     try {
       const { slate = "Main" } = req.query;
-      
+
       // Mock top 5 DFS picks data
       const topFivePicks = [
         {
@@ -1199,7 +1226,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           valueRating: 7.6
         }
       ];
-      
+
       res.json(topFivePicks);
     } catch (error) {
       console.error("Error fetching top five picks:", error);
@@ -1263,7 +1290,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           lastActive: "1 day ago"
         }
       ];
-      
+
       res.json(contributors);
     } catch (error) {
       console.error("Error fetching leaderboard:", error);
@@ -1312,7 +1339,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           finalScore: "BUF 28, MIA 24"
         }
       ];
-      
+
       res.json(pastPicks);
     } catch (error) {
       console.error("Error fetching past picks:", error);
@@ -1331,7 +1358,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           favoriteTeams: 4
         }
       };
-      
+
       res.json(dashboardData);
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
@@ -1354,7 +1381,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           status: "pending"
         }
       ];
-      
+
       res.json(savedPicks);
     } catch (error) {
       console.error("Error fetching saved picks:", error);
@@ -1376,7 +1403,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           bioBoostTrend: "up"
         }
       ];
-      
+
       res.json(favoriteTeams);
     } catch (error) {
       console.error("Error fetching favorite teams:", error);
@@ -1397,7 +1424,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           urgency: "medium"
         }
       ];
-      
+
       res.json(recentAlerts);
     } catch (error) {
       console.error("Error fetching recent alerts:", error);
@@ -1429,7 +1456,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           favoriteBet: "Spread"
         }
       };
-      
+
       res.json(userProfile);
     } catch (error) {
       console.error("Error fetching user profile:", error);
@@ -1438,13 +1465,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Enhanced NFL Data API Routes
-  
+
   // Import enhanced services
   const { EnhancedScheduleService } = await import('./services/enhanced-schedule');
   const { PlayerSpotlightService } = await import('./services/player-spotlight');
   const { DFSSalaryService } = await import('./services/dfs-salary');
   const { PickHistoryService } = await import('./services/pick-history');
-  
+
   const scheduleService = new EnhancedScheduleService();
   const playerSpotlightService = new PlayerSpotlightService();
   const dfsSalaryService = new DFSSalaryService();
@@ -1456,7 +1483,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { week } = req.query;
       const targetWeek = week ? parseInt(week as string) : undefined;
       const schedule = await scheduleService.fetchScheduleWithOdds(targetWeek);
-      
+
       res.json({
         week: targetWeek || scheduleService.getCurrentNFLWeek(),
         games: schedule,
@@ -1516,7 +1543,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         limit: req.query.limit ? parseInt(req.query.limit as string) : undefined,
         offset: req.query.offset ? parseInt(req.query.offset as string) : undefined
       };
-      
+
       const picks = await pickHistoryService.getHistoricalPicks(filters);
       res.json(picks);
     } catch (error) {
@@ -1532,7 +1559,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         season: req.query.season ? parseInt(req.query.season as string) : undefined,
         lastNWeeks: req.query.lastNWeeks ? parseInt(req.query.lastNWeeks as string) : undefined
       };
-      
+
       const metrics = await pickHistoryService.calculateAccuracyMetrics(filters);
       res.json(metrics);
     } catch (error) {
@@ -1542,23 +1569,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
-  
+
   // WebSocket server for live updates - using separate port to avoid Vite conflicts
   const wss = new WebSocketServer({ 
     server: httpServer, 
     path: '/api/ws',
     perMessageDeflate: false 
   });
-  
+
   wss.on('connection', (ws) => {
     console.log('🔌 GuerillaGenics client connected to WebSocket');
-    
+
     // Send welcome message
     ws.send(JSON.stringify({
       type: 'connection:established',
       message: 'Connected to GuerillaGenics live feed 🦍'
     }));
-    
+
     // Simulate live updates every 15 seconds for demo
     const interval = setInterval(() => {
       if (ws.readyState === ws.OPEN) {
@@ -1574,9 +1601,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             confidence: Math.floor(Math.random() * 40) + 60
           }
         };
-        
+
         ws.send(JSON.stringify(mockUpdate));
-        
+
         // Random alert every other update
         if (Math.random() > 0.6) {
           const alerts = [
@@ -1585,7 +1612,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             '📈 Significant line movement!',
             '🌧️ Weather update affecting game!'
           ];
-          
+
           const alertUpdate = {
             type: 'alerts:juice',
             payload: {
@@ -1597,30 +1624,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
               type: 'bioboost'
             }
           };
-          
+
           ws.send(JSON.stringify(alertUpdate));
         }
       }
     }, 15000);
-    
+
     ws.on('close', () => {
       console.log('🔌 GuerillaGenics client disconnected');
       clearInterval(interval);
     });
-    
+
     ws.on('error', (error) => {
       console.error('🔌 GuerillaGenics WebSocket error:', error);
       clearInterval(interval);
     });
   });
-  
+
   // Register new API routes for conversion optimization
-  
+
   // Mock analytics endpoints
   app.get('/api/analytics/visitors/count', (req, res) => {
     res.json({ total: Math.floor(Math.random() * 10000) + 5000 });
   });
-  
+
   app.get('/api/analytics/conversions/funnel', (req, res) => {
     res.json({
       stages: [
@@ -1631,14 +1658,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ]
     });
   });
-  
+
   app.post('/api/analytics/event', (req, res) => {
     // Track analytics event (in production, save to database)
     const { eventType, meta, timestamp } = req.body;
     console.log(`📊 Analytics Event: ${eventType}`, meta);
     res.status(200).json({ success: true });
   });
-  
+
   // Mock referrals endpoints
   app.get('/api/referrals/stats', (req, res) => {
     res.json({
@@ -1648,7 +1675,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       conversionsThisMonth: 5
     });
   });
-  
+
   app.get('/api/referrals/dashboard/:userId', (req, res) => {
     const { userId } = req.params;
     res.json({
@@ -1666,7 +1693,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ]
     });
   });
-  
+
   // Mock testimonials endpoints
   app.get('/api/testimonials', (req, res) => {
     res.json([
@@ -1690,7 +1717,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     ]);
   });
-  
+
   app.get('/api/testimonials/stats/summary', (req, res) => {
     res.json({
       total: 47,
@@ -1698,7 +1725,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       fiveStarCount: 42
     });
   });
-  
+
   // Mock blog endpoints
   app.get('/api/blog', (req, res) => {
     res.json({
@@ -1716,7 +1743,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ]
     });
   });
-  
+
   app.get('/api/blog/tags/list', (req, res) => {
     res.json([
       { tag: 'Science', count: 12 },
@@ -1724,7 +1751,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       { tag: 'BioBoost', count: 15 }
     ]);
   });
-  
+
   // Sitemap endpoint
   app.get('/sitemap.xml', (req, res) => {
     const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
@@ -1738,7 +1765,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.set('Content-Type', 'text/xml');
     res.send(sitemap);
   });
-  
+
   app.get('/robots.txt', (req, res) => {
     const robots = `User-agent: *
 Allow: /
@@ -1747,138 +1774,10 @@ Sitemap: https://${req.hostname}/sitemap.xml`;
     res.send(robots);
   });
 
-  // 💳 STRIPE SUBSCRIPTION ENDPOINTS
-  
-  // Create Stripe checkout session for Jungle Access subscription
-  app.post('/api/create-checkout-session', async (req, res) => {
-    if (!stripe) {
-      return res.status(500).json({ error: 'Stripe not configured' });
-    }
-    
-    try {
-      const { userId } = req.body;
-      
-      // Create checkout session for $10/month subscription
-      const session = await stripe.checkout.sessions.create({
-        mode: 'subscription',
-        payment_method_types: ['card'],
-        line_items: [
-          {
-            price_data: {
-              currency: 'usd',
-              product_data: {
-                name: 'Jungle Access 🦍',
-                description: 'Full access to Weekly Picks, Top 5 DFS, and Juice Watch alerts',
-                images: [`https://${req.hostname}/icons/gorilla-subscription.png`],
-              },
-              unit_amount: 1000, // $10.00
-              recurring: {
-                interval: 'month',
-              },
-            },
-            quantity: 1,
-          },
-        ],
-        success_url: `https://${req.hostname}/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `https://${req.hostname}/cancel`,
-        metadata: {
-          userId: userId?.toString() || 'guest',
-        },
-      });
-      
-      console.log('🦍 Created Stripe checkout session:', session.id);
-      res.json({ sessionId: session.id, url: session.url });
-    } catch (error) {
-      console.error('❌ Stripe checkout error:', error);
-      res.status(500).json({ error: 'Failed to create checkout session' });
-    }
-  });
-  
-  // Stripe webhook endpoint for subscription events
-  app.post('/api/webhook', async (req, res) => {
-    if (!stripe) {
-      return res.status(500).json({ error: 'Stripe not configured' });
-    }
-    
-    try {
-      const event = req.body;
-      
-      switch (event.type) {
-        case 'checkout.session.completed':
-          const session = event.data.object;
-          console.log('🦍 Subscription payment successful:', session.id);
-          
-          // Update user subscription status
-          if (session.metadata?.userId && session.metadata.userId !== 'guest') {
-            await storage.updateUserSubscription(parseInt(session.metadata.userId), {
-              stripeCustomerId: session.customer,
-              stripeSubscriptionId: session.subscription,
-              subscriptionStatus: 'active',
-              isSubscribed: true,
-              subscriptionEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-            });
-            console.log('🦍 Updated user subscription:', session.metadata.userId);
-          }
-          break;
-          
-        case 'customer.subscription.updated':
-        case 'customer.subscription.deleted':
-          const subscription = event.data.object;
-          console.log('🦍 Subscription status changed:', subscription.status);
-          
-          // Update subscription status in database
-          if (subscription.metadata?.userId) {
-            await storage.updateUserSubscription(parseInt(subscription.metadata.userId), {
-              subscriptionStatus: subscription.status,
-              isSubscribed: subscription.status === 'active',
-            });
-          }
-          break;
-          
-        default:
-          console.log('🦍 Unhandled Stripe event:', event.type);
-      }
-      
-      res.status(200).json({ received: true });
-    } catch (error) {
-      console.error('❌ Stripe webhook error:', error);
-      res.status(400).json({ error: 'Webhook error' });
-    }
-  });
-  
-  // Get user subscription status
-  app.get('/api/subscription/status/:userId', async (req, res) => {
-    try {
-      const { userId } = req.params;
-      const user = await storage.getUser(parseInt(userId));
-      
-      if (!user) {
-        return res.status(404).json({ error: 'User not found' });
-      }
-      
-      res.json({
-        isSubscribed: user.isSubscribed || false,
-        subscriptionStatus: user.subscriptionStatus || 'inactive',
-        subscriptionEndDate: user.subscriptionEndDate,
-      });
-    } catch (error) {
-      console.error('❌ Error fetching subscription status:', error);
-      res.status(500).json({ error: 'Failed to fetch subscription status' });
-    }
-  });
-  
-  // Placeholder for future Stripe Connect onboarding
-  app.post('/api/connect/onboard', async (req, res) => {
-    // Future: Set up Stripe Connect for contributor payouts and referral rewards
-    res.status(501).json({ 
-      message: 'Stripe Connect integration coming soon for contributor payouts!' 
-    });
-  });
-
   // Initialize live data and start scheduler in development
   if (process.env.NODE_ENV === 'development') {
     console.log('🦍 Starting GuerillaGenics data scheduler in development mode...');
-    
+
     // Initialize with live NFL player data
     setTimeout(async () => {
       try {
@@ -1889,9 +1788,9 @@ Sitemap: https://${req.hostname}/sitemap.xml`;
         console.error('❌ Error initializing live player data:', error);
       }
     }, 2000);
-    
+
     // Uncomment to auto-start scheduler: dataScheduler.start();
   }
-  
+
   return httpServer;
 }

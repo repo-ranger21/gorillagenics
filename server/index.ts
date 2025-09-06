@@ -1,10 +1,39 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
+import { setupVite, serveStatic } from "./vite";
+import { createServer } from "http";
+import rateLimit from "express-rate-limit";
+import cors from "cors";
+import helmet from "helmet";
 
 const app = express();
+
+// Security Middleware
+app.use(cors()); // Enable CORS
+app.use(helmet()); // Enhance security with various HTTP headers
+
+// Rate Limiting
+const limiter = rateLimit({
+  windowMs: 15 * 64 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per `window` (here, per 15 minutes)
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  message: "Too many requests, please try again later.",
+});
+app.use(limiter);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Request Validation Middleware (Example - could be more sophisticated)
+app.use("/api", (req: Request, res: Response, next: NextFunction) => {
+  if (req.method === "POST" || req.method === "PUT" || req.method === "PATCH") {
+    if (!req.body || Object.keys(req.body).length === 0) {
+      return res.status(400).json({ message: "Request body cannot be empty." });
+    }
+  }
+  next();
+});
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -29,7 +58,9 @@ app.use((req, res, next) => {
         logLine = logLine.slice(0, 79) + "…";
       }
 
-      log(logLine);
+      // Assuming 'log' is a function defined elsewhere for logging
+      // If not, it should be imported or defined. For now, using console.log
+      console.log(logLine);
     }
   });
 
@@ -39,12 +70,16 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
 
+  // Centralized Error Handling Middleware
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
+    console.error(`Error: ${err.stack || err}`); // Log the error stack for debugging
+
     res.status(status).json({ message });
-    throw err;
+    // Do not re-throw here if you want the error handling to be the last step
+    // throw err; // Removed to prevent double error handling or unexpected behavior
   });
 
   // importantly only setup vite in development and after
@@ -66,6 +101,6 @@ app.use((req, res, next) => {
     host: "0.0.0.0",
     reusePort: true,
   }, () => {
-    log(`serving on port ${port}`);
+    console.log(`serving on port ${port}`); // Assuming 'log' is console.log
   });
 })();

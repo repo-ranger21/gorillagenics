@@ -61,7 +61,7 @@ export class NFLDataService {
   private espnCoreUrl = 'https://sports.core.api.espn.com/v2/sports/football/leagues/nfl';
   private oddsApiKey = process.env.ODDS_API_KEY;
   private oddsBaseUrl = 'https://api.the-odds-api.com/v4';
-  
+
   // NFL team mappings
   private teamMappings = new Map([
     ['ARI', { espnId: '22', name: 'Arizona Cardinals' }],
@@ -100,7 +100,7 @@ export class NFLDataService {
 
   async fetchCurrentWeekGames(): Promise<ESPNGame[]> {
     try {
-      const response = await axios.get(`${this.espnBaseUrl}/scoreboard`);
+      const response = await this.fetchFromESPN('/scoreboard');
       return response.data.events || [];
     } catch (error) {
       console.error('Error fetching games:', error);
@@ -110,9 +110,7 @@ export class NFLDataService {
 
   async fetchPlayerStats(playerId: string, season: number = 2024): Promise<any> {
     try {
-      const response = await axios.get(
-        `https://sports.core.api.espn.com/v2/sports/football/leagues/nfl/seasons/${season}/athletes/${playerId}/statistics/0`
-      );
+      const response = await this.fetchFromESPNCore(`/seasons/${season}/athletes/${playerId}/statistics/0`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching player stats for ${playerId}:`, error);
@@ -122,9 +120,7 @@ export class NFLDataService {
 
   async fetchTeamRoster(teamId: string): Promise<ESPNPlayer[]> {
     try {
-      const response = await axios.get(
-        `${this.espnCoreUrl}/seasons/2024/teams/${teamId}/athletes`
-      );
+      const response = await this.fetchFromESPNCore(`/seasons/2024/teams/${teamId}/athletes`);
       return response.data.items || [];
     } catch (error) {
       console.error(`Error fetching roster for team ${teamId}:`, error);
@@ -136,34 +132,34 @@ export class NFLDataService {
     try {
       const players: any[] = [];
       const currentWeekGames = await this.fetchCurrentWeekGames();
-      
+
       // Get players from current week's games
       for (const game of currentWeekGames.slice(0, 8)) { // Limit games to avoid rate limits
         const competitors = game.competitions?.[0]?.competitors || [];
-        
+
         for (const competitor of competitors) {
           const teamEspnId = competitor.team?.id;
           if (teamEspnId) {
             try {
               const roster = await this.fetchTeamRoster(teamEspnId);
-              
+
               // Process top players from each position
               const positionLimits = { 'QB': 2, 'RB': 3, 'WR': 4, 'TE': 2, 'K': 1 };
               const positionCounts: { [key: string]: number } = {};
-              
+
               for (const playerRef of roster) {
                 if (players.length >= limit) break;
-                
+
                 try {
                   // Fetch detailed player data
-                  const playerResponse = await axios.get(playerRef.$ref);
+                  const playerResponse = await this.fetchFromESPNCore(playerRef.$ref.replace('https://sports.core.api.espn.com/v2/sports/football/leagues/nfl', ''));
                   const player = playerResponse.data;
-                  
+
                   if (player && player.position?.abbreviation) {
                     const pos = player.position.abbreviation;
                     const currentCount = positionCounts[pos] || 0;
                     const maxForPosition = positionLimits[pos] || 1;
-                    
+
                     if (currentCount < maxForPosition) {
                       // Calculate enhanced player data
                       const enhancedPlayer = await this.createEnhancedPlayer(player, competitor.team);
@@ -171,7 +167,7 @@ export class NFLDataService {
                       positionCounts[pos] = currentCount + 1;
                     }
                   }
-                  
+
                   // Rate limiting
                   await this.sleep(100);
                 } catch (playerError) {
@@ -182,12 +178,12 @@ export class NFLDataService {
               console.warn(`Error fetching roster for team ${teamEspnId}:`, teamError);
             }
           }
-          
+
           // Rate limiting between teams
           await this.sleep(500);
         }
       }
-      
+
       console.log(`✅ Fetched ${players.length} real NFL players from ESPN API`);
       return players;
     } catch (error) {
@@ -202,7 +198,7 @@ export class NFLDataService {
       const playerId = this.generatePlayerId(espnPlayer.displayName);
       const position = espnPlayer.position?.abbreviation || 'Unknown';
       const teamAbbr = team.abbreviation || 'UNK';
-      
+
       // Get current stats if available
       let stats = null;
       try {
@@ -212,17 +208,17 @@ export class NFLDataService {
       } catch (statsError) {
         console.warn('Could not fetch stats for player:', espnPlayer.displayName);
       }
-      
+
       // Generate opponent matchup
       const opponent = await this.findOpponent(teamAbbr);
       const matchup = `${teamAbbr} ${Math.random() > 0.5 ? '@' : 'vs'} ${opponent}`;
-      
+
       // Calculate BioBoost with real data
       const bioBoostData = this.calculateEnhancedBioBoost(espnPlayer, stats, position);
-      
+
       // Generate betting line based on position and stats
       const bettingData = this.generateBettingLine(position, stats, bioBoostData.bioBoost);
-      
+
       return {
         id: playerId,
         name: espnPlayer.displayName,
@@ -254,36 +250,36 @@ export class NFLDataService {
     // Age-based testosterone calculation
     const age = this.calculateAge(player.dateOfBirth) || 26;
     let testosteroneBase = age < 24 ? 85 : age < 28 ? 80 : age < 32 ? 75 : 70;
-    
+
     // Position bonuses for physicality
     const physicalPositions = ['RB', 'LB', 'DE', 'DT', 'OL'];
     if (physicalPositions.includes(position)) testosteroneBase += 10;
-    
+
     // Height/weight factors for testosterone proxy
     const height = player.height || 72; // inches
     const weight = player.weight || 200; // pounds
     const bmi = (weight / (height * height)) * 703;
     if (bmi >= 25 && bmi <= 30) testosteroneBase += 5; // Optimal BMI range for athletes
-    
+
     // Recent performance impact on confidence/testosterone
     if (stats && stats.passing?.passingYards > 300) testosteroneBase += 8;
     if (stats && stats.rushing?.rushingYards > 100) testosteroneBase += 10;
     if (stats && stats.receiving?.receivingYards > 100) testosteroneBase += 7;
-    
+
     // Sleep score (simulated with some real factors)
     let sleepScore = 70 + Math.floor(Math.random() * 25);
     if (age < 25) sleepScore += 5; // Younger players typically sleep better
-    
+
     // Cortisol (stress) - lower is better
     let cortisol = 30 + Math.floor(Math.random() * 40);
     if (stats && stats.errors > 2) cortisol += 15; // More errors = more stress
-    
+
     // Hydration (simulated)
     const hydration = 75 + Math.floor(Math.random() * 25);
-    
+
     // Injury recovery (simulated, would integrate with injury reports)
     const injuryRecovery = Math.floor(Math.random() * 7);
-    
+
     // Final BioBoost calculation
     const bioBoost = Math.round(
       sleepScore * 0.30 +
@@ -292,7 +288,7 @@ export class NFLDataService {
       hydration * 0.10 +
       Math.max(100 - injuryRecovery * 5, 0) * 0.05
     );
-    
+
     return {
       sleepScore,
       testosteroneProxy: Math.min(testosteroneBase, 100),
@@ -311,20 +307,20 @@ export class NFLDataService {
       'TE': { type: 'Receiving Yards', baseRange: [35, 75] },
       'K': { type: 'Made FGs', baseRange: [1, 3] }
     };
-    
+
     const lineData = lines[position] || { type: 'Fantasy Points', baseRange: [8, 16] };
     const [min, max] = lineData.baseRange;
-    
+
     // Adjust line based on BioBoost
     const bioBoostFactor = bioBoost / 100;
     const adjustment = (max - min) * (bioBoostFactor - 0.5) * 0.4; // +/- 20% based on BioBoost
     const baseLine = min + (max - min) * 0.6; // Start at 60% of range
     const finalLine = baseLine + adjustment;
-    
+
     // Generate recommendation
     let pick = 'HOLD';
     let confidence = 50;
-    
+
     if (bioBoost >= 80) {
       pick = bioBoost >= 90 ? 'STRONG BUY' : 'BUY';
       confidence = 75 + Math.floor(Math.random() * 20);
@@ -334,7 +330,7 @@ export class NFLDataService {
     } else {
       confidence = 50 + Math.floor(Math.random() * 20);
     }
-    
+
     return {
       line: Math.round(finalLine * 2) / 2, // Round to nearest 0.5
       type: lineData.type,
@@ -391,7 +387,7 @@ export class NFLDataService {
 
   async fetchInjuryReport(): Promise<any[]> {
     try {
-      const response = await axios.get(`${this.espnBaseUrl}/news`);
+      const response = await this.fetchFromESPN('/news');
       const injuryNews = response.data.articles?.filter((article: any) => 
         article.headline?.toLowerCase().includes('injury') ||
         article.headline?.toLowerCase().includes('injured') ||
@@ -441,12 +437,12 @@ export class NFLDataService {
       // Get current week games that are live or upcoming
       const games = await this.getCurrentWeekGames();
       const liveGameIds = games.slice(0, 5).map(g => g.id);
-      
+
       if (liveGameIds.length === 0) {
         console.log('No live games found for in-game odds');
         return [];
       }
-      
+
       const response = await axios.get(
         `${this.oddsBaseUrl}/sports/americanfootball_nfl/odds`,
         {
@@ -460,7 +456,7 @@ export class NFLDataService {
           }
         }
       );
-      
+
       console.log(`✅ Fetched in-game odds for ${response.data?.length || 0} live NFL games`);
       return response.data || [];
     } catch (error) {
@@ -506,16 +502,16 @@ export class NFLDataService {
       // Get current week games for context
       const games = await this.getCurrentWeekGames();
       const gameIds = games.slice(0, 6).map(g => g.id);
-      
+
       const allProps = [];
-      
+
       // Fetch different prop markets in batches to avoid rate limits
       const marketBatches = [
         'player_pass_yds,player_pass_tds,player_pass_completions',
         'player_rush_yds,player_rush_tds,player_rush_attempts', 
         'player_receptions,player_receiving_yds,player_anytime_td'
       ];
-      
+
       for (const markets of marketBatches) {
         try {
           const response = await axios.get(
@@ -531,18 +527,18 @@ export class NFLDataService {
               }
             }
           );
-          
+
           if (response.data && Array.isArray(response.data)) {
             allProps.push(...response.data);
           }
-          
+
           // Rate limiting between requests
           await this.sleep(300);
         } catch (marketError) {
           console.warn(`Error fetching markets ${markets}:`, marketError.message);
         }
       }
-      
+
       console.log(`✅ Fetched ${allProps.length} enhanced player props from live odds API`);
       return allProps;
     } catch (error) {
@@ -553,47 +549,47 @@ export class NFLDataService {
 
   parseAndEnhancePlayerOdds(oddsData: any[], players: any[]): any[] {
     const enhancedPlayers = players.map(player => ({ ...player, liveOdds: {} }));
-    
+
     for (const game of oddsData) {
       if (!game.bookmakers || !Array.isArray(game.bookmakers)) continue;
-      
+
       for (const bookmaker of game.bookmakers) {
         if (!bookmaker.markets || !Array.isArray(bookmaker.markets)) continue;
-        
+
         for (const market of bookmaker.markets) {
           if (!market.outcomes || !Array.isArray(market.outcomes)) continue;
-          
+
           for (const outcome of market.outcomes) {
             // Match player by name (fuzzy matching)
             const matchingPlayer = enhancedPlayers.find(p => 
               outcome.description && 
                 this.fuzzyPlayerMatch(p.name, outcome.description)
             );
-            
+
             if (matchingPlayer) {
               const marketKey = market.key.replace('player_', '');
-              
+
               if (!matchingPlayer.liveOdds[marketKey]) {
                 matchingPlayer.liveOdds[marketKey] = {};
               }
-              
+
               if (!matchingPlayer.liveOdds[marketKey][bookmaker.key]) {
                 matchingPlayer.liveOdds[marketKey][bookmaker.key] = [];
               }
-              
+
               matchingPlayer.liveOdds[marketKey][bookmaker.key].push({
                 line: outcome.point || null,
                 odds: outcome.price,
                 name: outcome.name,
                 updated: new Date().toISOString()
               });
-              
+
               // Calculate BioBoost vs Market edge
               const oddsValue = this.calculateOddsValue(matchingPlayer.bioBoostScore, {
                 odds: outcome.price,
                 line: outcome.point
               });
-              
+
               if (oddsValue && oddsValue.edge > 5) {
                 matchingPlayer.recommendedBets = matchingPlayer.recommendedBets || [];
                 matchingPlayer.recommendedBets.push({
@@ -610,14 +606,14 @@ export class NFLDataService {
         }
       }
     }
-    
+
     return enhancedPlayers.filter(p => Object.keys(p.liveOdds).length > 0 || p.recommendedBets?.length > 0);
   }
 
   private fuzzyPlayerMatch(playerName: string, description: string): boolean {
     const cleanName = playerName.toLowerCase().replace(/[^a-z\s]/g, '');
     const cleanDesc = description.toLowerCase().replace(/[^a-z\s]/g, '');
-    
+
     const nameParts = cleanName.split(' ');
     return nameParts.some(part => 
       part.length > 2 && cleanDesc.includes(part)
@@ -626,7 +622,7 @@ export class NFLDataService {
 
   private calculateOddsValue(bioBoost: number, marketData: any): any {
     if (!marketData || !marketData.odds) return null;
-    
+
     // Convert American odds to implied probability
     const getImpliedProb = (americanOdds: number) => {
       if (americanOdds > 0) {
@@ -635,12 +631,12 @@ export class NFLDataService {
         return Math.abs(americanOdds) / (Math.abs(americanOdds) + 100);
       }
     };
-    
+
     // BioBoost to expected probability
     const bioBoostProb = Math.max(0.4, Math.min(0.85, bioBoost / 100));
     const impliedProb = getImpliedProb(marketData.odds);
     const edge = (bioBoostProb - impliedProb) * 100;
-    
+
     return edge > 3 ? {
       edge: Math.round(edge * 10) / 10,
       impliedProb: Math.round(impliedProb * 100),
@@ -679,7 +675,7 @@ export class NFLDataService {
     const baseScore = 75;
     const ageBonus = playerData.age < 28 ? 10 : playerData.age > 32 ? -10 : 0;
     const positionBonus = ['RB', 'LB', 'DE'].includes(playerData.position) ? 10 : 0;
-    
+
     return Math.min(Math.max(baseScore + ageBonus + positionBonus + Math.floor(Math.random() * 20) - 10, 0), 100);
   }
 
@@ -703,6 +699,70 @@ export class NFLDataService {
     // Implementation would compare previous vs current metrics
     // and generate alerts for significant changes
     return alerts;
+  }
+
+  // Helper method to fetch from ESPN Core API
+  private async fetchFromESPNCore(endpoint: string, retries = 3): Promise<any> {
+    let lastError: any;
+
+    for (let i = 0; i < retries; i++) {
+      try {
+        const response = await axios.get(`${this.espnCoreUrl}${endpoint}`, {
+          timeout: 10000,
+          headers: {
+            'User-Agent': 'GuerillaGenics/1.0 (Sports Analytics)',
+          }
+        });
+        return response.data;
+      } catch (error: any) {
+        lastError = error;
+
+        // Don't retry on 4xx errors (client errors)
+        if (error.response?.status >= 400 && error.response?.status < 500) {
+          break;
+        }
+
+        // Wait before retrying (exponential backoff)
+        if (i < retries - 1) {
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
+        }
+      }
+    }
+
+    console.error(`ESPN Core API Error for ${endpoint} after ${retries} retries:`, lastError);
+    throw new Error(`ESPN Core API unavailable: ${lastError.message}`);
+  }
+
+  // Helper method to fetch from ESPN Site API with retry logic
+  private async fetchFromESPN(endpoint: string, retries = 3): Promise<any> {
+    let lastError: any;
+
+    for (let i = 0; i < retries; i++) {
+      try {
+        const response = await axios.get(`${this.espnBaseUrl}${endpoint}`, {
+          timeout: 10000,
+          headers: {
+            'User-Agent': 'GuerillaGenics/1.0 (Sports Analytics)',
+          }
+        });
+        return response.data;
+      } catch (error: any) {
+        lastError = error;
+
+        // Don't retry on 4xx errors (client errors)
+        if (error.response?.status >= 400 && error.response?.status < 500) {
+          break;
+        }
+
+        // Wait before retrying (exponential backoff)
+        if (i < retries - 1) {
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
+        }
+      }
+    }
+
+    console.error(`ESPN API Error for ${endpoint} after ${retries} retries:`, lastError);
+    throw new Error(`ESPN API unavailable: ${lastError.message}`);
   }
 }
 

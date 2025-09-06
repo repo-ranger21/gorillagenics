@@ -14,7 +14,7 @@ export class CacheService {
   set(key, value, type = 'default') {
     const ttl = this.ttls[type] || 5 * 60 * 1000; // 5 min default
     const expiry = Date.now() + ttl;
-    
+
     this.cache.set(key, {
       value,
       expiry,
@@ -28,14 +28,14 @@ export class CacheService {
 
   get(key) {
     const entry = this.cache.get(key);
-    
+
     if (!entry) return null;
-    
+
     if (Date.now() > entry.expiry) {
       this.cache.delete(key);
       return null;
     }
-    
+
     return entry.value;
   }
 
@@ -79,14 +79,14 @@ export class CacheService {
   cleanup() {
     const now = Date.now();
     let cleaned = 0;
-    
+
     for (const [key, entry] of this.cache.entries()) {
       if (now > entry.expiry) {
         this.cache.delete(key);
         cleaned++;
       }
     }
-    
+
     if (cleaned > 0) {
       console.log(`🧹 Cache cleanup: removed ${cleaned} expired entries`);
     }

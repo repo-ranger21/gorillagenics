@@ -47,6 +47,19 @@ export const MARKET_FACTORS = {
  * Calculate comprehensive risk score for a betting opportunity
  */
 export function calculateBettingRisk(game, betType = 'spread') {
+  // Input validation
+  if (!game || typeof game !== 'object') {
+    console.error('🦍 Invalid game data for risk calculation');
+    return {
+      riskScore: 50,
+      confidence: 50,
+      recommendation: 'AVOID - Insufficient Data',
+      factors: {},
+      aiInsight: 'Unable to calculate risk without valid game data',
+      potentialReturn: 0,
+      projection: 'Unknown'
+    };
+  }
   const weights = RISK_WEIGHTS[betType] || RISK_WEIGHTS.spread;
   
   // Extract game factors
