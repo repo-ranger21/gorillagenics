@@ -51,14 +51,45 @@ export function getFunnelData(): FunnelData {
     return data;
   } catch (error) {
     console.warn('🦍 Failed to parse funnel data:', error);
-    return getFunnelData(); // Will create new data
+    // Return default without recursion
+    const defaultData: FunnelData = {
+      stage: 'awareness',
+      firstSeenISO: new Date().toISOString(),
+      freePicksViewed: 0,
+      weeklyReset: getNextWeekReset(),
+      dismissedModal: false,
+      dismissedBanner: false
+    };
+    setFunnelData(defaultData);
+    return defaultData;
   }
 }
 
 // Update funnel data in localStorage
 export function setFunnelData(data: Partial<FunnelData>): void {
   try {
-    const current = getFunnelData();
+    let current: FunnelData;
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      current = stored ? JSON.parse(stored) : {
+        stage: 'awareness',
+        firstSeenISO: new Date().toISOString(),
+        freePicksViewed: 0,
+        weeklyReset: getNextWeekReset(),
+        dismissedModal: false,
+        dismissedBanner: false
+      };
+    } catch {
+      current = {
+        stage: 'awareness',
+        firstSeenISO: new Date().toISOString(),
+        freePicksViewed: 0,
+        weeklyReset: getNextWeekReset(),
+        dismissedModal: false,
+        dismissedBanner: false
+      };
+    }
+    
     const updated = { ...current, ...data };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
   } catch (error) {

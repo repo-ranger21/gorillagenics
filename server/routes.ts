@@ -1607,25 +1607,129 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register new API routes for conversion optimization
   
-  // Analytics routes
-  const analyticsRoutes = require('./routes/analytics');
-  app.use('/api/analytics', analyticsRoutes);
+  // Mock analytics endpoints
+  app.get('/api/analytics/visitors/count', (req, res) => {
+    res.json({ total: Math.floor(Math.random() * 10000) + 5000 });
+  });
   
-  // Referrals routes
-  const referralsRoutes = require('./routes/referrals');
-  app.use('/api/referrals', referralsRoutes);
+  app.get('/api/analytics/conversions/funnel', (req, res) => {
+    res.json({
+      stages: [
+        { name: 'Landing', visitors: 1000, conversions: 800 },
+        { name: 'Weekly Picks', visitors: 800, conversions: 400 },
+        { name: 'Free Pick Modal', visitors: 400, conversions: 200 },
+        { name: 'Subscription', visitors: 200, conversions: 50 }
+      ]
+    });
+  });
   
-  // Testimonials routes
-  const testimonialsRoutes = require('./routes/testimonials');
-  app.use('/api/testimonials', testimonialsRoutes);
+  // Mock referrals endpoints
+  app.get('/api/referrals/stats', (req, res) => {
+    res.json({
+      totalReferrals: 42,
+      totalRewards: 150,
+      clicksThisMonth: 23,
+      conversionsThisMonth: 5
+    });
+  });
   
-  // Blog routes
-  const blogRoutes = require('./routes/blog');
-  app.use('/api/blog', blogRoutes);
+  app.get('/api/referrals/dashboard/:userId', (req, res) => {
+    const { userId } = req.params;
+    res.json({
+      userId,
+      referralCode: `GG-${userId.toUpperCase().slice(0, 6)}`,
+      stats: {
+        totalReferrals: 12,
+        totalRewards: 45,
+        clicksThisMonth: 8,
+        conversionsThisMonth: 2
+      },
+      recentActivity: [
+        { type: 'referral', amount: 5, date: new Date().toISOString() },
+        { type: 'click', date: new Date(Date.now() - 86400000).toISOString() }
+      ]
+    });
+  });
   
-  // Sitemap and SEO routes
-  const sitemapRoutes = require('./routes/sitemap');
-  app.use('/', sitemapRoutes);
+  // Mock testimonials endpoints
+  app.get('/api/testimonials', (req, res) => {
+    res.json([
+      {
+        id: '1',
+        name: 'Alex Thompson',
+        quote: 'GuerillaGenics transformed my DFS strategy. The BioBoost scores are incredibly accurate!',
+        rating: 5,
+        role: 'DFS Player',
+        avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=64&h=64&fit=crop&crop=face',
+        created_at: new Date().toISOString()
+      },
+      {
+        id: '2',
+        name: 'Sarah Johnson',
+        quote: 'Finally, a platform that combines science with sports. My bankroll has grown 300%.',
+        rating: 5,
+        role: 'Sports Bettor',
+        avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=64&h=64&fit=crop&crop=face',
+        created_at: new Date().toISOString()
+      }
+    ]);
+  });
+  
+  app.get('/api/testimonials/stats/summary', (req, res) => {
+    res.json({
+      total: 47,
+      averageRating: 4.8,
+      fiveStarCount: 42
+    });
+  });
+  
+  // Mock blog endpoints
+  app.get('/api/blog', (req, res) => {
+    res.json({
+      posts: [
+        {
+          id: '1',
+          slug: 'bioboost-science-explained',
+          title: 'The Science Behind BioBoost: How Player Biology Affects Performance',
+          excerpt: 'Deep dive into the scientific research that powers our BioBoost scoring system.',
+          author: 'Dr. Mike Gorilla',
+          published_at: new Date().toISOString(),
+          tags: ['Science', 'BioBoost', 'Research'],
+          wordCount: 1200
+        }
+      ]
+    });
+  });
+  
+  app.get('/api/blog/tags/list', (req, res) => {
+    res.json([
+      { tag: 'Science', count: 12 },
+      { tag: 'Strategy', count: 8 },
+      { tag: 'BioBoost', count: 15 }
+    ]);
+  });
+  
+  // Sitemap endpoint
+  app.get('/sitemap.xml', (req, res) => {
+    const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+    <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+      <url><loc>https://${req.hostname}/</loc><priority>1.0</priority></url>
+      <url><loc>https://${req.hostname}/weekly-picks</loc><priority>0.9</priority></url>
+      <url><loc>https://${req.hostname}/top5</loc><priority>0.8</priority></url>
+      <url><loc>https://${req.hostname}/testimonials</loc><priority>0.7</priority></url>
+      <url><loc>https://${req.hostname}/blog</loc><priority>0.7</priority></url>
+    </urlset>`;
+    res.set('Content-Type', 'text/xml');
+    res.send(sitemap);
+  });
+  
+  app.get('/robots.txt', (req, res) => {
+    const robots = `User-agent: *
+Allow: /
+Sitemap: https://${req.hostname}/sitemap.xml`;
+    res.set('Content-Type', 'text/plain');
+    res.send(robots);
+  });
 
   // Initialize live data and start scheduler in development
   if (process.env.NODE_ENV === 'development') {
