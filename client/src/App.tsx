@@ -15,6 +15,8 @@ import Education from "@/pages/Education";
 import Profile from "@/pages/Profile";
 import Testimonials from "@/pages/Testimonials";
 import BlogIndex from "@/pages/BlogIndex";
+import Success from "@/pages/Success";
+import Cancel from "@/pages/Cancel";
 // Legacy routes
 import DashboardLegacy from "@/pages/dashboard";
 import DashboardWizard from "@/pages/dashboard-wizard";
@@ -58,6 +60,10 @@ function Router() {
         <Route path="/profile" component={Profile} />
         <Route path="/testimonials" component={Testimonials} />
         <Route path="/blog" component={BlogIndex} />
+        
+        {/* Stripe Payment Routes */}
+        <Route path="/success" component={Success} />
+        <Route path="/cancel" component={Cancel} />
         
         {/* Legacy Routes for Backward Compatibility */}
         <Route path="/dashboard-legacy" component={DashboardLegacy} />
