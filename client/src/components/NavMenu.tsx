@@ -40,10 +40,21 @@ const navigationConfig = {
       ]
     },
     {
-      label: "Tools",
+      label: "Community",
+      icon: Users,
+      hasDropdown: true,
+      items: [
+        { label: "Testimonials", href: "/testimonials", description: "Success stories from the jungle" },
+        { label: "Discord Chat", href: "discord", description: "Live community discussions", external: true },
+        { label: "Twitter Feed", href: "twitter", description: "Latest jungle updates", external: true }
+      ]
+    },
+    {
+      label: "Learn",
       icon: BookOpen,
       hasDropdown: true,
       items: [
+        { label: "Blog", href: "/blog", description: "Expert analysis & strategies" },
         { label: "Juice Watch", href: "/alerts", description: "Live line movement alerts" },
         { label: "Betting Education", href: "/education", description: "Strategy & glossary" }
       ]

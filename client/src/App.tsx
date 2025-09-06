@@ -13,6 +13,8 @@ import Dashboard from "@/pages/Dashboard";
 import Alerts from "@/pages/Alerts";
 import Education from "@/pages/Education";
 import Profile from "@/pages/Profile";
+import Testimonials from "@/pages/Testimonials";
+import BlogIndex from "@/pages/BlogIndex";
 // Legacy routes
 import DashboardLegacy from "@/pages/dashboard";
 import DashboardWizard from "@/pages/dashboard-wizard";
@@ -23,11 +25,25 @@ import RiskHeatmapPage from "@/pages/risk-heatmap";
 import ChallengesPage from "@/pages/challenges";
 import PredictionPlayground from "@/pages/prediction-playground";
 import NotFound from "@/pages/not-found";
+import FreePickModal from "@/components/FreePickModal";
+import UnlockBanner from "@/components/UnlockBanner";
+import { captureRefFromURL } from "@/modules/referrals/referralClient";
+import { useEffect } from "react";
 
 function Router() {
+  // Capture referral from URL on mount
+  useEffect(() => {
+    captureRefFromURL();
+  }, []);
+
   return (
     <>
       <NavMenu />
+      
+      {/* Global Conversion Components */}
+      <UnlockBanner position="top" />
+      <FreePickModal />
+      
       <Switch>
         <Route path="/" component={Landing} />
         
@@ -40,6 +56,8 @@ function Router() {
         <Route path="/alerts" component={Alerts} />
         <Route path="/education" component={Education} />
         <Route path="/profile" component={Profile} />
+        <Route path="/testimonials" component={Testimonials} />
+        <Route path="/blog" component={BlogIndex} />
         
         {/* Legacy Routes for Backward Compatibility */}
         <Route path="/dashboard-legacy" component={DashboardLegacy} />
