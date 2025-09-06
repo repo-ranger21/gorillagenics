@@ -10,12 +10,19 @@ import {
 } from "lucide-react";
 import { formatGameDate } from "@/utils/weekFetcher";
 
+interface WeeklyPickCardProps {
+  game: any;
+  index?: number;
+  showDetails?: boolean;
+  onToggleDetails?: (expanded: boolean) => void;
+}
+
 export default function WeeklyPickCard({ 
   game, 
   index = 0, 
   showDetails = false,
   onToggleDetails 
-}) {
+}: WeeklyPickCardProps) {
   const [isExpanded, setIsExpanded] = useState(showDetails);
   const [currentSpread, setCurrentSpread] = useState(game.spread);
   const [currentTotal, setCurrentTotal] = useState(game.total);
@@ -38,7 +45,7 @@ export default function WeeklyPickCard({
                          game.confidence === 'MEDIUM' ? 'text-yellow-600' : 'text-gray-600';
 
   // Time slot styling
-  const timeSlotColors = {
+  const timeSlotColors: Record<string, string> = {
     'thursday': 'bg-purple-100 text-purple-800',
     'friday': 'bg-blue-100 text-blue-800',
     'sunday_early': 'bg-green-100 text-green-800',

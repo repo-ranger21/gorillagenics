@@ -16,7 +16,6 @@ import LoadingScreen from "@/components/LoadingScreen";
 import FallbackContent from "@/components/FallbackContent";
 import { TopFivePanel } from "@/components/TopFivePanel";
 
-// @ts-ignore
 import { 
   getCurrentNFLWeek, 
   shouldRollover, 
@@ -186,7 +185,7 @@ export default function WeeklyPicks() {
           <FallbackContent 
             onRetry={handleRetry} 
             error={error}
-            lastKnownData={getStoredWeek()?.data} 
+            lastKnownData={null} 
           />
         </div>
       </div>
