@@ -1,0 +1,141 @@
+GuerillaGenics Full-Site Expansion & Navigation Upgrade
+
+Expand GuerillaGenics.app into a fully optimized, market-ready DFS and weekly NFL sports betting prediction platform by implementing the following improvements:
+
+---
+
+🎯 Core Goals
+
+1. Add missing pages and modules:
+   - **Weekly Picks**: Live matchups, odds, BioBoost picks, and commentary.
+   - **Top 5 DFS Picks**: League-wide offensive superstars with ggScore and DFS value.
+   - **Leaderboard**: Track top contributors, pick accuracy, and BioBoost win rates.
+   - **Past Performance**: Archive of previous weeks’ picks, outcomes, and commentary.
+   - **User Dashboard**: Personalized view with saved picks, favorite teams, and contributor stats.
+   - **Profile Management**: Basic user settings, avatar, email preferences, and Substack integration.
+
+2. Deepen navigation structure:
+   - Convert single-layer nav into a multi-tabbed, dropdown-enabled system.
+   - Add segmented tabs for:
+     - Weekly Picks
+     - DFS Spotlight
+     - Juice Watch Alerts
+     - Betting Education
+     - Leaderboard
+     - Past Picks
+     - Dashboard
+
+3. Maintain GuerillaGenics branding:
+   - Jungle aesthetic, mascot-driven UX, and witty commentary.
+   - Palette: #0B3D2E (jungle), #FFD447 (banana), #C53030 (action red), #16A34A (vine green).
+   - Loading state: “🦍 Peeling the data bananas…”
+   - Fallback: “Data is swinging in late — check back soon!”
+
+---
+
+🧭 Navigation & Routing
+
+- Convert top nav into a responsive dropdown menu with hover/tap tabs.
+- Route structure:
+
+
+/weekly-picks /top5 /leaderboard /past-picks /dashboard /profile /education /alerts
+
+- Add mobile hamburger menu with collapsible sections.
+- Highlight active route with jungle-themed underline or glow.
+
+---
+
+📄 Page Details
+
+### /weekly-picks
+- Live schedule from ESPN or TheSportsDB.
+- Odds from The Odds API.
+- BioBoost picks with confidence bands and commentary.
+- Filters: All | Thursday | Friday | Sunday Early | Sunday Late | SNF | MNF.
+
+### /top5
+- Top 5 DFS picks based on ggScore, popularity, and matchup environment.
+- Only QB/RB/WR/TE players.
+- Slate badge: Main or Prime-Time.
+- Commentary: “Alpha target share vs soft boundary — bananas incoming.”
+
+### /leaderboard
+- Contributor rankings by pick accuracy, BioBoost win %, and streaks.
+- Weekly and season-long views.
+- Jungle-themed badges: 🦍 Silverback, 🍌 Banana Streak, 🐆 Fast Climber.
+
+### /past-picks
+- Archive of previous weeks.
+- Outcome tracking: Win/Loss, Over/Under result, BioBoost accuracy.
+- Search by week, team, or contributor.
+
+### /dashboard
+- Personalized feed: saved picks, favorite teams, recent alerts.
+- Juice Watch summary.
+- DFS value tracker.
+
+### /profile
+- Avatar upload, email preferences, Substack link.
+- Saved picks history.
+- Contributor role badge (if applicable).
+
+### /education
+- Betting glossary.
+- DFS strategy modules.
+- BioBoost logic explainer.
+- Responsible betting resources.
+
+### /alerts
+- Juice Watch feed: line moves, weather shifts, injury spikes.
+- Real-time updates via WebSocket or polling.
+- Emoji-coded urgency: ⚡, 🌧️, 🦍.
+
+---
+
+🛠️ Tech Stack
+
+- Frontend: React, TailwindCSS, Framer Motion, React Router.
+- Backend: Node.js, Express, WebSocket (for live odds and alerts).
+- State: Zustand or React Query.
+- Data Sources:
+- Schedule: ESPN, TheSportsDB
+- Odds: The Odds API
+- Players: Sleeper API
+- DFS Salaries: DraftKings/FanDuel (optional)
+- Authentication: Basic email login or OAuth (optional for personalization).
+- Caching: localStorage (frontend), in-memory TTL (backend).
+
+---
+
+📂 Folder Structure
+
+
+/src/pages WeeklyPicks.jsx TopFive.jsx Leaderboard.jsx PastPicks.jsx Dashboard.jsx Profile.jsx Education.jsx Alerts.jsx /src/components NavMenu.jsx DropdownTabs.jsx MatchupCard.jsx TopPickCard.jsx LeaderboardTable.jsx PastPickArchive.jsx UserPanel.jsx ProfileForm.jsx Glossary.jsx AlertFeed.jsx LoadingScreen.jsx FallbackContent.jsx NewsletterCTA.jsx Disclaimer.jsx /src/state useUserStore.js usePicksStore.js /src/utils scoring.js commentary.js timeEt.js /server index.js routes/ weeklyPicks.js topFive.js leaderboard.js pastPicks.js dashboard.js profile.js alerts.js services/ bioBoostService.js scoringService.js cache.js scheduleAdapter.js oddsAdapter.js playerAdapter.js
+
+
+---
+
+🔌 Environment Variables
+
+
+VITE_API_BASE=https://your-domain/api VITE_SUBSTACK_PUBLICATION=https://your-substack.substack.com SCHEDULE_PROVIDER=espn ODDS_PROVIDER=theoddsapi PLAYERS_PROVIDER=sleeper ODDS_API_KEY=xxxxx NFL_API_KEY=xxxxx NODE_ENV=production
+
+
+---
+
+🧪 Acceptance Criteria
+
+- All new pages are accessible via dropdown navigation.
+- Weekly Picks and Top 5 DFS Picks show live matchups and offensive stars only.
+- Leaderboard and Past Picks track credibility and history.
+- Dashboard and Profile personalize the experience.
+- Juice Watch Alerts update in real time.
+- Betting Education page provides glossary and strategy.
+- Mobile navigation is responsive and intuitive.
+- All pages match GuerillaGenics brand voice and aesthetic.
+
+---
+
+Deliver a complete, runnable enhancement that transforms GuerillaGenics.app into a modular, personalized, and market-ready DFS and NFL prediction platform.
+
