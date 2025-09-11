@@ -24,6 +24,7 @@ import { CacheService } from "./services/cache.js";
 import { handleTopFiveRequest, handleHealthCheck } from "./routes/weeklyTopFive.js";
 import { body, param, query, validationResult } from "express-validator";
 import rateLimit from "express-rate-limit";
+import { requirePremiumSubscription } from "./middleware/subscriptionAuth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize live data providers for production-ready Weekly Picks
@@ -32,6 +33,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const oddsProvider = new OddsTheOddsApiAdapter(process.env.ODDS_API_KEY);
   const playersProvider = new PlayersSleeperAdapter();
   const predictionsService = new PredictionsService();
+  
+  // Import Gematria services
+  const { gematriaScoringService } = await import('./services/gematria-scoring.js');
+  const { gematriaPredictionsService } = await import('./services/gematria-predictions.js');
 
   // API routes for GuerillaGenics platform
 
@@ -121,6 +126,208 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch alerts" });
     }
   });
+
+  // ========== GEMATRIA API ENDPOINTS (PREMIUM FEATURE) ==========
+
+  // Get players with Gematria analysis
+  app.get("/api/gematria/players", 
+    requirePremiumSubscription,
+    [
+      query('gameDate').optional().isISO8601(),
+      query('team').optional().isString(),
+      query('limit').optional().isInt({ min: 1, max: 50 })
+    ],
+    async (req, res) => {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+      try {
+        const { gameDate, team, limit } = req.query;
+        const parsedGameDate = gameDate ? new Date(gameDate as string) : new Date();
+        const parsedLimit = limit ? parseInt(limit as string) : 20;
+
+        console.log('🔢 Generating Gematria player analysis...');
+
+        // Get base players
+        const players = await livePlayerService.refreshPlayerData();
+        let filteredPlayers = players;
+
+        // Filter by team if specified
+        if (team) {
+          filteredPlayers = players.filter(p => p.team.toLowerCase() === (team as string).toLowerCase());
+        }
+
+        // Generate mock birthdays for development
+        const mockBirthdays = gematriaScoringService.generateMockBirthdays(filteredPlayers);
+
+        // Enhance players with Gematria analysis
+        const enhancedPlayers = gematriaScoringService.enhancePlayersWithGematria(
+          filteredPlayers.slice(0, parsedLimit),
+          parsedGameDate,
+          mockBirthdays
+        );
+
+        // Get top picks by edge probability
+        const topGematriaPicks = gematriaScoringService.getTopGematriaPicks(enhancedPlayers, 10);
+
+        console.log(`✅ Generated Gematria analysis for ${enhancedPlayers.length} players`);
+
+        res.json({
+          players: enhancedPlayers,
+          topPicks: topGematriaPicks,
+          gameDate: parsedGameDate.toISOString(),
+          totalAnalyzed: enhancedPlayers.length,
+          generatedAt: new Date().toISOString()
+        });
+      } catch (error) {
+        console.error("Error generating Gematria player analysis:", error);
+        res.status(500).json({ message: "Failed to generate Gematria analysis" });
+      }
+    }
+  );
+
+  // Get enhanced predictions with Gematria fusion
+  app.get("/api/gematria/predictions",
+    requirePremiumSubscription,
+    [
+      query('gameDate').optional().isISO8601(),
+      query('gameId').optional().isString()
+    ],
+    async (req, res) => {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+      try {
+        const { gameDate, gameId } = req.query;
+        const parsedGameDate = gameDate ? new Date(gameDate as string) : new Date();
+
+        console.log('🦍 Generating Gematria-enhanced predictions...');
+
+        // Get players and mock games for analysis
+        const players = await livePlayerService.refreshPlayerData();
+        
+        // Create mock game for demonstration
+        const mockGame = {
+          id: gameId || 'mock-game-1',
+          homeTeam: { name: 'Lions', id: 'DET' },
+          awayTeam: { name: '49ers', id: 'SF' },
+          date: parsedGameDate
+        };
+
+        // Split players by team
+        const homeTeamPlayers = players.filter(p => p.team === 'Lions').slice(0, 8);
+        const awayTeamPlayers = players.filter(p => p.team === '49ers').slice(0, 8);
+
+        // Create mock odds snapshot
+        const mockOddsSnapshot = {
+          spread: { home: -3.5 },
+          total: 47.5,
+          lineMove: { spreadΔ: 0.5, totalΔ: 1.0 }
+        };
+
+        // Create mock featured offense data
+        const mockFeaturedOffense = [
+          { teamId: 'DET', players: homeTeamPlayers.map(p => ({ ...p, roleTag: p.position === 'QB' ? 'QB1' : 'WR1' })) },
+          { teamId: 'SF', players: awayTeamPlayers.map(p => ({ ...p, roleTag: p.position === 'QB' ? 'QB1' : 'WR1' })) }
+        ];
+
+        // Generate enhanced prediction with Gematria fusion
+        const gematriaPrediction = await gematriaPredictionsService.generateGematriaPrediction(
+          mockGame,
+          mockOddsSnapshot,
+          mockFeaturedOffense,
+          homeTeamPlayers,
+          awayTeamPlayers,
+          parsedGameDate
+        );
+
+        console.log('✅ Generated Gematria-enhanced prediction with fusion analysis');
+
+        res.json({
+          prediction: gematriaPrediction,
+          gameDate: parsedGameDate.toISOString(),
+          generatedAt: new Date().toISOString()
+        });
+      } catch (error) {
+        console.error("Error generating Gematria prediction:", error);
+        res.status(500).json({ message: "Failed to generate Gematria prediction" });
+      }
+    }
+  );
+
+  // Get team-level Gematria matchup analysis
+  app.get("/api/gematria/matchups",
+    requirePremiumSubscription,
+    [
+      query('gameDate').optional().isISO8601(),
+      query('homeTeam').optional().isString(),
+      query('awayTeam').optional().isString()
+    ],
+    async (req, res) => {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+      try {
+        const { gameDate, homeTeam, awayTeam } = req.query;
+        const parsedGameDate = gameDate ? new Date(gameDate as string) : new Date();
+        const home = (homeTeam as string) || 'Lions';
+        const away = (awayTeam as string) || '49ers';
+
+        console.log(`🔢 Analyzing Gematria matchup: ${away} @ ${home}...`);
+
+        // Get players for both teams
+        const players = await livePlayerService.refreshPlayerData();
+        const homeTeamPlayers = players.filter(p => p.team === home).slice(0, 10);
+        const awayTeamPlayers = players.filter(p => p.team === away).slice(0, 10);
+
+        // Generate mock birthdays
+        const allPlayers = [...homeTeamPlayers, ...awayTeamPlayers];
+        const mockBirthdays = gematriaScoringService.generateMockBirthdays(allPlayers);
+
+        // Enhance players with Gematria
+        const enhancedHomePlayers = gematriaScoringService.enhancePlayersWithGematria(
+          homeTeamPlayers, parsedGameDate, mockBirthdays
+        );
+        const enhancedAwayPlayers = gematriaScoringService.enhancePlayersWithGematria(
+          awayTeamPlayers, parsedGameDate, mockBirthdays
+        );
+
+        // Perform matchup analysis
+        const matchupAnalysis = gematriaScoringService.analyzeMatchupGematria(
+          enhancedHomePlayers,
+          enhancedAwayPlayers,
+          home,
+          away,
+          `${away}-${home}-${parsedGameDate.toISOString().split('T')[0]}`,
+          0.55 // Mock home win probability
+        );
+
+        // Calculate team aggregations
+        const homeGematria = gematriaScoringService.calculateTeamGematria(enhancedHomePlayers, home);
+        const awayGematria = gematriaScoringService.calculateTeamGematria(enhancedAwayPlayers, away);
+
+        console.log(`✅ Completed Gematria matchup analysis with ${matchupAnalysis.confidence} confidence`);
+
+        res.json({
+          matchup: matchupAnalysis,
+          teamAnalysis: {
+            home: { team: home, ...homeGematria },
+            away: { team: away, ...awayGematria }
+          },
+          gameDate: parsedGameDate.toISOString(),
+          generatedAt: new Date().toISOString()
+        });
+      } catch (error) {
+        console.error("Error analyzing Gematria matchup:", error);
+        res.status(500).json({ message: "Failed to analyze Gematria matchup" });
+      }
+    }
+  );
+
+  // ========== END GEMATRIA ENDPOINTS ==========
 
   // Live NFL games and scores
   app.get("/api/nfl/games", async (req, res) => {

@@ -19,6 +19,8 @@ import {
   ArrowLeft
 } from "lucide-react";
 import { Link } from "wouter";
+import AccessGate from "@/components/AccessGate";
+import GematriaSection from "@/components/GematriaSection";
 
 interface SavedPick {
   id: string;
@@ -110,7 +112,7 @@ export default function Dashboard() {
 
       <div className="container mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 bg-white/50">
+          <TabsList className="grid w-full grid-cols-5 bg-white/50">
             <TabsTrigger 
               value="overview" 
               className="data-[state=active]:bg-jungle data-[state=active]:text-white"
@@ -128,12 +130,26 @@ export default function Dashboard() {
               Saved Picks
             </TabsTrigger>
             <TabsTrigger 
+              value="gematria"
+              className="data-[state=active]:bg-jungle data-[state=active]:text-white relative"
+              data-testid="gematria-tab"
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-lg">🔢</span>
+                <span className="hidden sm:inline">Gematria</span>
+                <span className="sm:hidden">Num</span>
+                <div className="absolute -top-1 -right-1 bg-banana text-jungle text-xs px-1 rounded font-bold">
+                  PRO
+                </div>
+              </div>
+            </TabsTrigger>
+            <TabsTrigger 
               value="teams"
               className="data-[state=active]:bg-jungle data-[state=active]:text-white"
               data-testid="teams-tab"
             >
               <Heart className="w-4 h-4 mr-2" />
-              Favorite Teams
+              <span className="hidden sm:inline">Teams</span>
             </TabsTrigger>
             <TabsTrigger 
               value="alerts"
@@ -141,7 +157,7 @@ export default function Dashboard() {
               data-testid="alerts-tab"
             >
               <Bell className="w-4 h-4 mr-2" />
-              Recent Alerts
+              <span className="hidden sm:inline">Alerts</span>
             </TabsTrigger>
           </TabsList>
 
@@ -151,6 +167,10 @@ export default function Dashboard() {
 
           <TabsContent value="picks" className="space-y-6 mt-6">
             <SavedPicksSection picks={savedPicks} />
+          </TabsContent>
+
+          <TabsContent value="gematria" className="space-y-6 mt-6">
+            <GematriaSection />
           </TabsContent>
 
           <TabsContent value="teams" className="space-y-6 mt-6">

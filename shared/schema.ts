@@ -49,6 +49,41 @@ export const players = pgTable("players", {
   // Live betting odds integration
   liveOdds: text("live_odds"), // JSON string of live odds data
   recommendedBets: text("recommended_bets"), // JSON string of recommended betting opportunities
+  // Player profile data for Gematria
+  birthday: timestamp("birthday"),
+  coachName: text("coach_name"),
+  // Gematria cipher scores
+  gematriaOrdinal: integer("gematria_ordinal"),
+  gematriaReduction: integer("gematria_reduction"),
+  gematriaReverse: integer("gematria_reverse"),
+  gematriaReverseReduction: integer("gematria_reverse_reduction"),
+  // Composite entity scores (player + team + coach)
+  compositeOrdinal: integer("composite_ordinal"),
+  compositeReduction: integer("composite_reduction"),
+  compositeReverse: integer("composite_reverse"),
+  compositeReverseReduction: integer("composite_reverse_reduction"),
+  // Date numerology for game date
+  gameYmdSum: integer("game_ymd_sum"),
+  gameYmdReduced: integer("game_ymd_reduced"),
+  gameDayOfYear: integer("game_day_of_year"),
+  gameWeekdayNum: integer("game_weekday_num"),
+  gameIsMaster: boolean("game_is_master"),
+  // Alignment features
+  exactMatch: boolean("exact_match"),
+  ritualProximity: integer("ritual_proximity"),
+  ritualHit: boolean("ritual_hit"),
+  ritualStrength: real("ritual_strength"),
+  // Birthday alignment
+  bdayExact: boolean("bday_exact"),
+  bdayWeek: boolean("bday_week"),
+  bdayDiffDays: integer("bday_diff_days"),
+  // GAS (Gematria Alignment Score)
+  gas: real("gas"),
+  // Model fusion results
+  gematriaBioBoostFinal: real("gematria_bioboost_final"),
+  gematriaEdgeProb: real("gematria_edge_prob"),
+  gematriaConfidence: text("gematria_confidence"), // ELITE, STRONG, MODERATE
+  gematriaZ: real("gematria_z"),
 });
 
 export const alerts = pgTable("alerts", {
