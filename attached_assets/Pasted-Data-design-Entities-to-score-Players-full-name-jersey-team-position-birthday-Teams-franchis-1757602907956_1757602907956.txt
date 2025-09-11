@@ -1,0 +1,438 @@
+Data design
+Entities to score
+
+Players: full name, jersey, team, position, birthday
+
+Teams: franchise name, mascot, city, head coach
+
+Games: home, away, date, kickoff time, stadium
+
+Ciphers
+
+English Ordinal, Full Reduction (Pythagorean), Reverse Ordinal, Reverse Reduction
+
+Features (per player/game)
+
+Name cipher sums: ordinal, reduction, reverse, reverse_reduction
+
+Date numerology: y+m+d, day-of-year, master numbers, reduced forms
+
+Alignment metrics: exact match flags, absolute distance to ritual numbers, nearest‑match strength
+
+Composite signals: player_name + team_name + coach_name; birthday alignment to game date
+
+Targets
+
+Matchups: win probability, ATS lean, total (O/U) lean
+
+DFS/props: yards/receptions/carries projections, hit‑rate vs lines, EV
+
+Model fusion concept
+Use Gematria as a meta‑signal overlay, not a replacement.
+
+Ensemble the BioBoost head with a Gematria head:
+
+Final probability:
+
+𝑝
+final
+=
+𝜎
+ ⁣
+(
+logit
+(
+𝑝
+bio
+)
+⋅
+𝑤
++
+𝛼
+⋅
+𝑠
+GAS
++
+𝛽
+⋅
+bday_align
++
+𝛾
+⋅
+ritual_proximity
+)
+Tune weights 
+(
+𝑤
+,
+𝛼
+,
+𝛽
+,
+𝛾
+)
+ with rolling CV; cap Gematria influence to prevent overfit.
+
+Replit-ready R implementation
+Paste this into a single R file (e.g., gg_gematria.R). It’s turnkey: ciphers, features, fusion, and outputs. Replace the placeholder data frame constructors with your live feeds.
+
+r
+# =========================
+# GuerillaGenics — Gematria Meta-Layer (R)
+# =========================
+
+# Packages
+suppressPackageStartupMessages({
+  library(dplyr); library(stringi); library(lubridate)
+  library(tidyr); library(purrr); library(data.table)
+  library(xgboost); library(pROC)
+})
+
+# ---- 1) Ciphers ----
+letters_vec <- setNames(1:26, LETTERS)
+reverse_vec <- setNames(26:1, LETTERS)
+
+# Full Reduction (Pythagorean): 1..9 repeating
+reduction_vals <- c(1:9,1:9,1:8) # length 26
+reduction_vec <- setNames(reduction_vals, LETTERS)
+
+# Reverse Reduction: reverse alphabet with 1..9 repeating
+rev_reduction_vals <- c(1:9,1:9,1:8)
+rev_reduction_vec <- setNames(rev_reduction_vals[rev(seq_along(rev_reduction_vals))[1:26]], LETTERS)
+
+# Helper: clean text to A-Z
+clean_letters <- function(x) toupper(gsub("[^A-Z]", "", x))
+
+gem_sum <- function(text, map) {
+  s <- clean_letters(text)
+  if (nchar(s) == 0) return(0L)
+  sum(map[strsplit(s, "", fixed = TRUE)[[1]]], na.rm = TRUE)
+}
+
+# Vectorized gematria for a data.frame column
+gem_cols <- function(vec) {
+  tibble(
+    ordinal = vapply(vec, gem_sum, FUN.VALUE = numeric(1), map = letters_vec),
+    reduction = vapply(vec, gem_sum, FUN.VALUE = numeric(1), map = reduction_vec),
+    reverse = vapply(vec, gem_sum, FUN.VALUE = numeric(1), map = reverse_vec),
+    rev_reduction = vapply(vec, gem_sum, FUN.VALUE = numeric(1), map = rev_reduction_vec)
+  )
+}
+
+# ---- 2) Date numerology ----
+reduce_to_digit <- function(n) { # standard reduction to 1..9 except master 11,22,33
+  if (n %in% c(11,22,33)) return(n)
+  repeat {
+    s <- sum(as.integer(strsplit(as.character(n), "")[[1]]))
+    if (s %in% c(11,22,33) || s < 10) return(s)
+    n <- s
+  }
+}
+
+date_numerology <- function(date) {
+  date <- as_date(date)
+  y <- year(date); m <- month(date); d <- day(date)
+  sum_raw <- y + m + d
+  tibble(
+    y = y, m = m, d = d,
+    ymd_sum = sum_raw,
+    ymd_reduced = reduce_to_digit(sum_raw),
+    day_of_year = yday(date),
+    weekday_num = wday(date, week_start = 1),
+    is_master_11_22_33 = as.integer(ymd_reduced %in% c(11,22,33))
+  )
+}
+
+# ---- 3) Ritual number catalog ----
+ritual_numbers <- c(7, 9, 11, 13, 22, 27, 33, 38, 41, 44, 55, 66, 77, 88, 99, 118)
+
+closest_distance <- function(x, catalog = ritual_numbers) {
+  d <- min(abs(x - catalog))
+  list(dist = d, hit = as.integer(d == 0))
+}
+
+# ---- 4) Alignment features ----
+alignment_features <- function(name_scores, date_scores) {
+  # exact matches across four ciphers vs date features
+  exact_match <- as.integer(
+    name_scores$ordinal == date_scores$ymd_reduced |
+    name_scores$reduction == date_scores$ymd_reduced |
+    name_scores$reverse == date_scores$ymd_reduced |
+    name_scores$rev_reduction == date_scores$ymd_reduced
+  )
+  # distances to ritual catalog (min of ciphers)
+  name_vals <- c(name_scores$ordinal, name_scores$reduction,
+                 name_scores$reverse, name_scores$rev_reduction)
+  dist_list <- lapply(name_vals, closest_distance)
+  min_dist <- min(vapply(dist_list, `[[`, numeric(1), "dist"))
+  ritual_hit <- as.integer(any(vapply(dist_list, `[[`, integer(1), "hit") == 1))
+
+  tibble(
+    exact_match = exact_match,
+    ritual_proximity = min_dist,  # lower is stronger
+    ritual_hit = ritual_hit,
+    ritual_strength = 1 / (1 + min_dist) # bounded (0,1]
+  )
+}
+
+# ---- 5) Composite entity scoring ----
+score_entity <- function(name) {
+  sc <- gem_cols(name)
+  as_tibble(sc)
+}
+
+score_composite <- function(player_name, team_name, coach_name) {
+  pn <- score_entity(player_name); tn <- score_entity(team_name); cn <- score_entity(coach_name)
+  # simple sum composite; you can try weighted blends after CV
+  pn + tn + cn
+}
+
+birthday_alignment <- function(player_bday, game_date) {
+  if (is.na(player_bday) || is.na(game_date)) return(tibble(
+    bday_exact = 0, bday_week = 0, bday_diff_days = NA_integer_
+  ))
+  diff <- as.integer(as_date(game_date) - as_date(player_bday) + years(year(game_date) - year(player_bday)))
+  tibble(
+    bday_exact = as.integer(month(player_bday) == month(game_date) & day(player_bday) == day(game_date)),
+    bday_week = as.integer(abs(diff) <= 3),
+    bday_diff_days = diff
+  )
+}
+
+# ---- 6) GAS (Gematria Alignment Score) ----
+compute_GAS <- function(name_scores, date_scores, align_feats, bday_feats,
+                        w_exact = 0.35, w_ritual = 0.40, w_bday = 0.20, w_master = 0.05) {
+  scale_ritual <- 1 - pmin(align_feats$ritual_proximity / 10, 1) # 0..1
+  gas <- w_exact*align_feats$exact_match +
+         w_ritual*scale_ritual +
+         w_bday*(0.7*bday_feats$bday_week + 0.3*bday_feats$bday_exact) +
+         w_master*date_scores$is_master_11_22_33
+  pmin(pmax(as.numeric(gas), 0), 1)
+}
+
+# ---- 7) Example: join with BioBoost predictions ----
+# PLACEHOLDER: replace these with live model outputs/data feeds
+players <- tibble::tibble(
+  player_id = 1:3,
+  player_name = c("Amon Ra St Brown", "Jared Goff", "Christian McCaffrey"),
+  team = c("Lions", "Lions", "49ers"),
+  coach = c("Dan Campbell", "Dan Campbell", "Kyle Shanahan"),
+  position = c("WR","QB","RB"),
+  birthday = as_date(c("1999-10-24","1994-10-14","1996-06-07"))
+)
+
+games <- tibble::tibble(
+  game_id = 1:2,
+  home_team = c("Lions", "49ers"),
+  away_team = c("Bears", "Saints"),
+  game_date = as_date(c("2025-09-14","2025-09-14"))
+)
+
+bioboost_player_proj <- tibble::tibble(
+  player_id = players$player_id,
+  # example: yardage projection and prop line
+  proj_yards = c(94.3, 284.1, 124.7),
+  line_yards = c(87.5, 272.5, 112.5),
+  bio_hit_prob = c(0.61, 0.58, 0.64) # model-calibrated hit probability
+)
+
+bioboost_team_probs <- tibble::tibble(
+  game_id = games$game_id,
+  home_win_prob = c(0.62, 0.68),
+  total_points_proj = c(46.5, 44.0)
+)
+
+# ---- 8) Feature engineering over roster x games ----
+# Expand players onto their relevant game
+roster_games <- players %>%
+  inner_join(games, by = character()) %>% # example: all players considered for the slate
+  mutate(in_game = as.integer(team %in% c(home_team, away_team))) %>%
+  filter(in_game == 1)
+
+# Compute name & composite scores
+name_scores_df <- roster_games %>%
+  mutate(idx = row_number()) %>%
+  bind_cols(score_entity(roster_games$player_name)) %>%
+  rename_with(~paste0("name_", .), .cols = c(ordinal, reduction, reverse, rev_reduction))
+
+comp_scores_df <- roster_games %>%
+  mutate(idx = row_number()) %>%
+  bind_cols(score_composite(roster_games$player_name, roster_games$team, roster_games$coach)) %>%
+  rename_with(~paste0("comp_", .), .cols = c(ordinal, reduction, reverse, rev_reduction))
+
+# Date numerology per game
+date_scores_df <- roster_games %>%
+  transmute(idx = row_number()) %>%
+  bind_cols(pmap_dfr(list(roster_games$game_date), date_numerology))
+
+# Alignment & birthday
+align_df <- pmap_dfr(seq_len(nrow(roster_games)), function(i){
+  ns <- name_scores_df[i, c("name_ordinal","name_reduction","name_reverse","name_rev_reduction")]
+  colnames(ns) <- c("ordinal","reduction","reverse","rev_reduction")
+  ds <- date_scores_df[i, c("ymd_sum","ymd_reduced","day_of_year","weekday_num","is_master_11_22_33")]
+  alignment_features(ns, ds)
+}) %>% mutate(idx = seq_len(n()))
+
+bday_df <- pmap_dfr(seq_len(nrow(roster_games)), function(i){
+  birthday_alignment(roster_games$birthday[i], roster_games$game_date[i])
+}) %>% mutate(idx = seq_len(n()))
+
+# GAS
+gas_df <- pmap_dfr(seq_len(nrow(roster_games)), function(i){
+  ns <- name_scores_df[i, c("name_ordinal","name_reduction","name_reverse","name_rev_reduction")]
+  colnames(ns) <- c("ordinal","reduction","reverse","rev_reduction")
+  ds <- date_scores_df[i,]
+  al <- align_df[i,]
+  bd <- bday_df[i,]
+  tibble(GAS = compute_GAS(ns, ds, al, bd))
+}) %>% mutate(idx = seq_len(n()))
+
+# Merge all features
+feat <- roster_games %>%
+  mutate(idx = row_number()) %>%
+  left_join(name_scores_df %>% select(idx, starts_with("name_")), by = "idx") %>%
+  left_join(comp_scores_df %>% select(idx, starts_with("comp_")), by = "idx") %>%
+  left_join(date_scores_df %>% select(idx, ymd_reduced, day_of_year, weekday_num, is_master_11_22_33), by = "idx") %>%
+  left_join(align_df %>% select(idx, exact_match, ritual_proximity, ritual_hit, ritual_strength), by = "idx") %>%
+  left_join(bday_df %>% select(idx, bday_exact, bday_week, bday_diff_days), by = "idx") %>%
+  left_join(gas_df %>% select(idx, GAS), by = "idx") %>%
+  left_join(bioboost_player_proj, by = "player_id")
+
+# ---- 9) Fusion for player props (DFS over/under) ----
+sigmoid <- function(z) 1/(1+exp(-z))
+logit <- function(p) log(p/(1-p))
+
+# Bounds for stability
+clip01 <- function(p, eps=1e-4) pmax(pmin(p, 1-eps), eps)
+
+# Tunable weights (start conservative)
+w <- 1.0; alpha <- 0.35; beta <- 0.20; gamma <- 0.25
+
+feat <- feat %>%
+  mutate(
+    bio = clip01(bio_hit_prob),
+    z = logit(bio)*w + alpha*GAS + beta*(0.7*bday_week + 0.3*bday_exact) + gamma*ritual_strength,
+    hit_prob_final = sigmoid(z),
+    edge_prob = hit_prob_final - bio,  # uplift from Gematria layer
+    pick = ifelse(proj_yards >= line_yards, "OVER", "UNDER"),
+    confidence = case_when(
+      abs(edge_prob) >= 0.10 ~ "ELITE",
+      abs(edge_prob) >= 0.05 ~ "STRONG",
+      TRUE ~ "MODERATE"
+    )
+  )
+
+# ---- 10) Matchup fusion ----
+# Derive team-level GAS by aggregating starters or top-snap players
+team_gas <- feat %>%
+  group_by(game_id, team) %>%
+  summarize(team_GAS = mean(GAS, na.rm = TRUE),
+            team_ritual_strength = mean(ritual_strength, na.rm = TRUE),
+            team_bday = mean(bday_week, na.rm = TRUE),
+            .groups = "drop")
+
+home_gas <- games %>%
+  left_join(team_gas, by = c("game_id","home_team"="team")) %>%
+  rename(home_GAS = team_GAS, home_ritual = team_ritual_strength, home_bday = team_bday)
+
+away_gas <- games %>%
+  left_join(team_gas, by = c("game_id","away_team"="team")) %>%
+  rename(away_GAS = team_GAS, away_ritual = team_ritual_strength, away_bday = team_bday)
+
+matchup <- games %>%
+  left_join(home_gas %>% select(game_id, home_GAS, home_ritual, home_bday), by = "game_id") %>%
+  left_join(away_gas %>% select(game_id, away_GAS, away_ritual, away_bday), by = "game_id") %>%
+  left_join(bioboost_team_probs, by = "game_id") %>%
+  mutate(
+    gas_diff = (home_GAS - away_GAS),
+    ritual_diff = (home_ritual - away_ritual),
+    bday_diff = (home_bday - away_bday),
+    z_home = qlogis(clip01(home_win_prob))*w + 0.30*gas_diff + 0.20*ritual_diff + 0.10*bday_diff,
+    home_win_final = sigmoid(z_home),
+    lean = ifelse(home_win_final >= 0.5, paste0("HOME: ", home_team), paste0("AWAY: ", away_team)),
+    confidence = case_when(
+      abs(home_win_final - 0.5) >= 0.15 ~ "Jungle Green",
+      abs(home_win_final - 0.5) >= 0.08 ~ "Canopy",
+      TRUE ~ "Trail"
+    )
+  )
+
+# ---- 11) Outputs ----
+dfs_out <- feat %>%
+  transmute(
+    player_name, team, position, game_date,
+    proj = proj_yards, line = line_yards,
+    bio_hit_prob, GAS, ritual_strength, bday_week,
+    hit_prob_final, edge_prob, pick, confidence
+  ) %>% arrange(desc(abs(edge_prob)))
+
+matchups_out <- matchup %>%
+  transmute(
+    game_id, date = game_date,
+    away = away_team, home = home_team,
+    home_win_prob_model = round(home_win_prob, 3),
+    home_win_prob_final = round(home_win_final, 3),
+    lean, confidence
+  ) %>% arrange(desc(abs(home_win_prob_final - 0.5)))
+
+# Print previews
+print(head(dfs_out, 10))
+print(matchups_out)
+Training and validation notes
+Calibrate weights 
+(
+𝑤
+,
+𝛼
+,
+𝛽
+,
+𝛾
+)
+ by rolling 6–8 week windows, measuring AUC for binary hit outcomes (props) and Brier score/log loss (matchups).
+
+Guardrails
+
+Cap Gematria uplift to ±0.12 on any probability adjustment.
+
+Use permutation tests: shuffle player–date pairings to estimate the spurious baseline, then keep features that beat random consistently.
+
+Track SHAP on a small tree model head to confirm Gematria features matter only in ambiguous slates.
+
+Production checklist
+Nightly: refresh rosters, injuries, depth charts; recompute Gematria tables for all probable participants and coaches.
+
+Weekly: freeze ritual catalog; re‑tune weights using prior week results; publish “Numerology Spotlight” with top GAS games and DFS props.
+
+Content: tag picks where Gematria and BioBoost agree (high trust) vs where Gematria contradicts (high volatility — perfect for satire).
+
+NFL 2025 Week 2 matchups
+Commanders at Packers — Thu, Sep 11 (TNF)
+
+Seahawks at Steelers — Sun, Sep 14
+
+Bills at Jets — Sun, Sep 14
+
+Patriots at Dolphins — Sun, Sep 14
+
+Rams at Titans — Sun, Sep 14
+
+Browns at Ravens — Sun, Sep 14
+
+Bears at Lions — Sun, Sep 14
+
+Giants at Cowboys — Sun, Sep 14
+
+Jaguars at Bengals — Sun, Sep 14
+
+Eagles at Chiefs — Sun, Sep 146
+
+Broncos at Colts — Sun, Sep 14
+
+Falcons at Vikings — Sun Night Football, Sep 14
+
+Buccaneers at Texans — Mon, Sep 15 (MNF)
+
+Chargers at Raiders — Mon, Sep 15 (MNF)
+
+Additional Week 2 games and timing are listed on ESPN’s schedule page and USA TODAY’s schedule hub for the full 16‑game slate
