@@ -5,22 +5,39 @@ import { createServer } from "http";
 import rateLimit from "express-rate-limit";
 import cors from "cors";
 import helmet from "helmet";
+import path from "path";
 
 const app = express();
 
+// Trust proxy for proper IP detection in development and production
+app.set('trust proxy', 1);
+
 // Security Middleware
 app.use(cors()); // Enable CORS
-app.use(helmet()); // Enhance security with various HTTP headers
 
-// Rate Limiting
-const limiter = rateLimit({
-  windowMs: 15 * 64 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per `window` (here, per 15 minutes)
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-  message: "Too many requests, please try again later.",
-});
-app.use(limiter);
+// Configure helmet for development-friendly security headers
+if (process.env.NODE_ENV === 'development') {
+  // Permissive security headers for development
+  app.use(helmet({
+    contentSecurityPolicy: false, // Disable CSP in development for Vite compatibility
+    crossOriginEmbedderPolicy: false, // Allow cross-origin embedder policy for dev tools
+  }));
+} else {
+  // Full security headers for production
+  app.use(helmet());
+}
+
+// Rate Limiting - Completely disabled in development to prevent 429 blocking
+if (process.env.NODE_ENV !== 'development') {
+  const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limit each IP to 100 requests per window
+    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+    message: "Too many requests, please try again later.",
+  });
+  app.use(limiter);
+}
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -85,8 +102,19 @@ app.use((req, res, next) => {
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
+  if (process.env.NODE_ENV === "development") {
+    // Default to no-HMR mode in development to avoid WebSocket handshake issues in Replit
+    console.log("🔨 Building frontend (no-HMR mode to avoid WebSocket issues)...");
+    const { build } = await import('vite');
+    const viteConfig = (await import('../vite.config.js')).default;
+    await build({ ...viteConfig, configFile: false });
+    console.log("✅ Frontend build complete, serving static assets");
+    // Use the correct build output directory from vite config
+    const distPath = path.resolve(import.meta.dirname, "..", "dist", "public");
+    app.use(express.static(distPath));
+    app.use("*", (_req, res) => {
+      res.sendFile(path.resolve(distPath, "index.html"));
+    });
   } else {
     serveStatic(app);
   }

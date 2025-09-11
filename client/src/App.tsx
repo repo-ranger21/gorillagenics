@@ -15,6 +15,7 @@ import Education from "@/pages/Education";
 import Profile from "@/pages/Profile";
 import Testimonials from "@/pages/Testimonials";
 import BlogIndex from "@/pages/BlogIndex";
+import Gematria from "@/pages/Gematria";
 // Legacy routes
 // Remove duplicate dashboard import to fix case sensitivity issue
 import DashboardWizard from "@/pages/dashboard-wizard";
@@ -71,6 +72,7 @@ function Router() {
           <Route path="/leaderboard" component={Leaderboard} />
           <Route path="/past-picks" component={PastPicks} />
           <Route path="/dashboard" component={Dashboard} />
+          <Route path="/gematria" component={Gematria} />
           <Route path="/alerts" component={Alerts} />
           <Route path="/education" component={Education} />
           <Route path="/profile" component={Profile} />

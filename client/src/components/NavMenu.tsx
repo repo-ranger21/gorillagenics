@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { 
   ChevronDown, 
   Menu, 
@@ -13,7 +14,9 @@ import {
   User,
   BookOpen,
   Bell,
-  BarChart3
+  BarChart3,
+  Calculator,
+  Star
 } from "lucide-react";
 
 const navigationConfig = {
@@ -29,6 +32,13 @@ const navigationConfig = {
       href: "/top5",
       icon: Trophy,
       description: "Elite offensive stars with ggScore"
+    },
+    {
+      label: "Gematria",
+      href: "/gematria",
+      icon: Calculator,
+      description: "Sacred number analysis with BioBoost fusion",
+      isPro: true
     },
     {
       label: "Analytics",
@@ -135,6 +145,12 @@ export default function NavMenu() {
                     >
                       <item.icon className="w-4 h-4" />
                       {item.label}
+                      {item.isPro && (
+                        <Badge className="bg-yellow-600 hover:bg-yellow-700 text-white text-xs px-1 py-0">
+                          <Star className="w-3 h-3 mr-1" />
+                          PRO
+                        </Badge>
+                      )}
                     </Button>
                   </Link>
                 )}
@@ -249,6 +265,12 @@ export default function NavMenu() {
                         >
                           <item.icon className="w-4 h-4" />
                           {item.label}
+                          {item.isPro && (
+                            <Badge className="bg-yellow-600 hover:bg-yellow-700 text-white text-xs px-1 py-0 ml-auto">
+                              <Star className="w-3 h-3 mr-1" />
+                              PRO
+                            </Badge>
+                          )}
                         </Button>
                       </Link>
                     )}

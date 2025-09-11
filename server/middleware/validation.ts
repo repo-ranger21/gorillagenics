@@ -2,6 +2,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { validationResult } from 'express-validator';
 import DOMPurify from 'isomorphic-dompurify';
+import rateLimit from 'express-rate-limit';
 
 export const validateRequest = (req: Request, res: Response, next: NextFunction) => {
   const errors = validationResult(req);
@@ -46,19 +47,24 @@ export const sanitizeInputs = (req: Request, res: Response, next: NextFunction) 
 export const rateLimiters = {
   general: rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // limit each IP to 100 requests per windowMs
-    message: 'Too many requests from this IP, please try again later.'
+    max: process.env.NODE_ENV === 'development' ? 1000 : 100, // Higher limit for development
+    message: 'Too many requests from this IP, please try again later.',
+    skip: (req) => {
+      // Skip rate limiting for development WebSocket and static assets
+      return process.env.NODE_ENV === 'development' && 
+             (req.url?.includes('/assets/') || req.headers.upgrade === 'websocket');
+    }
   }),
   
   api: rateLimit({
     windowMs: 1 * 60 * 1000, // 1 minute
-    max: 30, // limit each IP to 30 API calls per minute
+    max: process.env.NODE_ENV === 'development' ? 200 : 30, // Higher limit for development
     message: 'API rate limit exceeded, please slow down.'
   }),
   
   analytics: rateLimit({
     windowMs: 1 * 60 * 1000, // 1 minute  
-    max: 10, // limit analytics calls
+    max: process.env.NODE_ENV === 'development' ? 100 : 10, // Higher limit for development
     message: 'Too many analytics events, please slow down.'
   })
 };

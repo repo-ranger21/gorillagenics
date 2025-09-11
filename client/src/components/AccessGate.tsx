@@ -15,7 +15,7 @@ interface AccessGateProps {
   className?: string;
 }
 
-export default function AccessGate({ 
+function AccessGate({ 
   children, 
   userId, 
   featureName, 
@@ -131,3 +131,7 @@ export default function AccessGate({
     </div>
   );
 }
+
+// Export both default and named for compatibility
+export default AccessGate;
+export { AccessGate };
