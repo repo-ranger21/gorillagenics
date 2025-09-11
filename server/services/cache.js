@@ -7,7 +7,8 @@ export class CacheService {
       schedule: 15 * 60 * 1000, // 15 minutes for schedule
       players: 6 * 60 * 60 * 1000, // 6 hours for players
       picks: 60 * 1000,       // 1 minute for picks
-      health: 30 * 1000       // 30 seconds for health
+      health: 30 * 1000,      // 30 seconds for health
+      gematria: 60 * 1000     // 1 minute for Gematria analysis
     };
   }
 

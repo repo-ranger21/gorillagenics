@@ -147,6 +147,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const parsedGameDate = gameDate ? new Date(gameDate as string) : new Date();
         const parsedLimit = limit ? parseInt(limit as string) : 20;
 
+        // Check cache first
+        const cacheKey = `gematria_players_${parsedGameDate.toDateString()}_${team || 'all'}_${parsedLimit}`;
+        let cachedData = cache.get(cacheKey);
+        
+        if (cachedData) {
+          console.log('🟢 Returning cached Gematria player analysis');
+          return res.json(cachedData);
+        }
+
         console.log('🔢 Generating Gematria player analysis...');
 
         // Get base players
@@ -173,13 +182,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         console.log(`✅ Generated Gematria analysis for ${enhancedPlayers.length} players`);
 
-        res.json({
+        const responseData = {
           players: enhancedPlayers,
           topPicks: topGematriaPicks,
           gameDate: parsedGameDate.toISOString(),
           totalAnalyzed: enhancedPlayers.length,
           generatedAt: new Date().toISOString()
-        });
+        };
+
+        // Cache the result
+        cache.set(cacheKey, responseData, 'gematria');
+
+        res.json(responseData);
       } catch (error) {
         console.error("Error generating Gematria player analysis:", error);
         res.status(500).json({ message: "Failed to generate Gematria analysis" });
@@ -202,6 +216,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         const { gameDate, gameId } = req.query;
         const parsedGameDate = gameDate ? new Date(gameDate as string) : new Date();
+
+        // Check cache first
+        const cacheKey = `gematria_predictions_${parsedGameDate.toDateString()}_${gameId || 'default'}`;
+        let cachedData = cache.get(cacheKey);
+        
+        if (cachedData) {
+          console.log('🟢 Returning cached Gematria predictions');
+          return res.json(cachedData);
+        }
 
         console.log('🦍 Generating Gematria-enhanced predictions...');
 
@@ -245,11 +268,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         console.log('✅ Generated Gematria-enhanced prediction with fusion analysis');
 
-        res.json({
+        const responseData = {
           prediction: gematriaPrediction,
           gameDate: parsedGameDate.toISOString(),
           generatedAt: new Date().toISOString()
-        });
+        };
+
+        // Cache the result
+        cache.set(cacheKey, responseData, 'gematria');
+
+        res.json(responseData);
       } catch (error) {
         console.error("Error generating Gematria prediction:", error);
         res.status(500).json({ message: "Failed to generate Gematria prediction" });
@@ -275,6 +303,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const parsedGameDate = gameDate ? new Date(gameDate as string) : new Date();
         const home = (homeTeam as string) || 'Lions';
         const away = (awayTeam as string) || '49ers';
+
+        // Check cache first
+        const cacheKey = `gematria_matchups_${parsedGameDate.toDateString()}_${away}_${home}`;
+        let cachedData = cache.get(cacheKey);
+        
+        if (cachedData) {
+          console.log('🟢 Returning cached Gematria matchup analysis');
+          return res.json(cachedData);
+        }
 
         console.log(`🔢 Analyzing Gematria matchup: ${away} @ ${home}...`);
 
@@ -311,7 +348,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         console.log(`✅ Completed Gematria matchup analysis with ${matchupAnalysis.confidence} confidence`);
 
-        res.json({
+        const responseData = {
           matchup: matchupAnalysis,
           teamAnalysis: {
             home: { team: home, ...homeGematria },
@@ -319,7 +356,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           },
           gameDate: parsedGameDate.toISOString(),
           generatedAt: new Date().toISOString()
-        });
+        };
+
+        // Cache the result
+        cache.set(cacheKey, responseData, 'gematria');
+
+        res.json(responseData);
       } catch (error) {
         console.error("Error analyzing Gematria matchup:", error);
         res.status(500).json({ message: "Failed to analyze Gematria matchup" });
