@@ -1,10 +1,7 @@
 import { motion } from "framer-motion";
 import HeroSection from "@/components/hero-section";
 import BioBoostCard from "@/components/bio-boost-card";
-import PlayerPickCard from "@/components/player-pick-card";
 import JuiceWatchAlerts from "@/components/juice-watch-alerts";
-import PerformanceHeatmap from "@/components/performance-heatmap";
-import PersonalizedRecommendations from "@/components/personalized-recommendations";
 import { bioMetrics } from "@/data/mock-data";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -21,20 +18,6 @@ const scrollToSection = (sectionId: string) => {
 };
 
 export default function Landing() {
-
-  // Fetch live NFL player data
-  const { data: players = [], isLoading: playersLoading } = useQuery<any[]>({
-    queryKey: ['/api/players'],
-    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
-    staleTime: 2 * 60 * 1000, // Data considered fresh for 2 minutes
-  });
-
-  // Fetch Week 1 picks for featured content
-  const { data: week1Picks = [] } = useQuery<any[]>({
-    queryKey: ['/api/weekly-picks/1'],
-    refetchInterval: 5 * 60 * 1000,
-    staleTime: 2 * 60 * 1000,
-  });
 
   // Fetch live alerts
   const { data: alerts = [], isLoading: alertsLoading } = useQuery<any[]>({
@@ -113,202 +96,8 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Primate Picks Section */}
-      <section id="picks" className="py-20 bg-secondary/30">
-        <div className="container mx-auto px-6">
-          <motion.div 
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-4xl md:text-5xl font-bold mb-6 text-foreground">
-              Primate Picks of the Week
-            </h2>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
-              Our gorilla has analyzed the biological data. These are the plays that make him go bananas.
-            </p>
-            
-            <div className="flex items-center justify-center gap-8 text-center">
-              <div>
-                <div className="text-3xl font-bold text-primary">{week1Picks.length}</div>
-                <div className="text-sm text-muted-foreground">Week 1 Games</div>
-              </div>
-              <div>
-                <div className="text-3xl font-bold text-accent">
-                  {week1Picks.length > 0 ? Math.round(week1Picks.filter((p: any) => p.winnerConfidence === 'HIGH').length / week1Picks.length * 100) : 0}%
-                </div>
-                <div className="text-sm text-muted-foreground">High Confidence</div>
-              </div>
-              <div>
-                <div className="text-3xl font-bold text-destructive">LIVE</div>
-                <div className="text-sm text-muted-foreground">Updated</div>
-              </div>
-            </div>
-          </motion.div>
 
-          {/* Featured Week 1 Picks */}
-          {week1Picks.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8 }}
-              className="mb-12"
-            >
-              <Card className="bg-gradient-to-r from-primary/10 to-accent/10 border-primary/20 mb-8">
-                <CardContent className="p-6">
-                  <h3 className="text-2xl font-bold text-foreground mb-4 text-center">
-                    🏈 Featured Week 1 Picks
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {week1Picks.slice(0, 3).map((pick: any, index: number) => (
-                      <motion.div
-                        key={pick.gameId || index}
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        whileInView={{ opacity: 1, scale: 1 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.5, delay: index * 0.1 }}
-                        className="bg-background/50 rounded-lg p-4 border border-primary/20"
-                      >
-                        <div className="text-sm text-center">
-                          <div className="font-semibold mb-2">{pick.awayTeam} @ {pick.homeTeam}</div>
-                          <div className="text-xs text-muted-foreground mb-3">{pick.date}</div>
-                          <div className="flex items-center justify-center gap-2 mb-2">
-                            <div className="text-lg">🦍</div>
-                            <div className="font-bold text-primary">
-                              {pick.winner === 'home' ? pick.homeTeam : pick.awayTeam}
-                            </div>
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {pick.winnerConfidence || 'MODERATE'} Confidence
-                          </div>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
-                  <div className="text-center mt-6">
-                    <Button variant="outline" asChild className="bg-primary/10">
-                      <a href="/weekly-picks">View All Week 1 Picks</a>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {playersLoading ? (
-              // Loading skeleton
-              Array.from({ length: 6 }).map((_, index) => (
-                <motion.div
-                  key={`skeleton-${index}`}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.8, delay: index * 0.1 }}
-                  className="h-96 bg-muted/20 rounded-lg animate-pulse"
-                />
-              ))
-            ) : (
-              (players as any[]).map((player: any, index: number) => (
-                <motion.div
-                  key={`${player.id}-${index}-${Date.now()}`}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.8, delay: index * 0.1 }}
-                >
-                  <PlayerPickCard player={player} />
-                </motion.div>
-              ))
-            )}
-          </div>
-
-          {/* Premium CTA */}
-          <motion.div 
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
-            className="text-center mt-16"
-          >
-            <Card className="bg-gradient-to-r from-primary/20 to-accent/20 border-primary/30 max-w-2xl mx-auto">
-              <CardContent className="p-8">
-                <h3 className="text-2xl font-bold text-foreground mb-4">
-                  Unlock Premium Gorilla Intelligence
-                </h3>
-                <p className="text-muted-foreground mb-6">
-                  Get access to all BioMetric insights, real-time alerts, and exclusive primate predictions.
-                </p>
-                <Button 
-                  className="bg-primary text-primary-foreground hover:bg-primary/90 transform hover:scale-105 transition-all animate-pulse-glow"
-                  data-testid="button-go-premium"
-                >
-                  🦍 Go Premium - $19.99/mo
-                </Button>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Personalized Recommendations Section */}
-      <section id="recommendations" className="py-20 bg-gradient-to-br from-accent/5 to-background">
-        <div className="container mx-auto px-6">
-          <motion.div 
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-4xl md:text-5xl font-bold mb-6 text-foreground">
-              🎯 Your Personal Picks
-            </h2>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              AI-powered recommendations tailored to your betting style, risk tolerance, and favorite teams.
-            </p>
-          </motion.div>
-
-          {playersLoading ? (
-            <div className="text-center py-8">
-              <div className="animate-pulse text-muted-foreground">Generating personalized recommendations...</div>
-            </div>
-          ) : (
-            <PersonalizedRecommendations players={players as any[]} />
-          )}
-        </div>
-      </section>
-
-      {/* Performance Heatmap Section */}
-      <section id="heatmap" className="py-20 bg-gradient-to-br from-primary/5 to-background">
-        <div className="container mx-auto px-6">
-          <motion.div 
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-4xl md:text-5xl font-bold mb-6 text-foreground">
-              🔥 Performance Heatmap
-            </h2>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Visualize player performance metrics in real-time. Interactive grid shows BioBoost data across all metrics.
-            </p>
-          </motion.div>
-
-          {playersLoading ? (
-            <div className="text-center py-8">
-              <div className="animate-pulse text-muted-foreground">Loading heatmap data...</div>
-            </div>
-          ) : (
-            <PerformanceHeatmap players={players as any[]} />
-          )}
-        </div>
-      </section>
 
       {/* Juice Watch Alerts Section */}
       <section id="alerts" className="py-20 bg-background">
