@@ -60,15 +60,15 @@ export default function Dashboard() {
     refetchInterval: 60000, // Refresh every minute
   });
 
-  const { data: savedPicks = [] } = useQuery({
+  const { data: savedPicks = [] } = useQuery<SavedPick[]>({
     queryKey: ['/api/user/saved-picks']
   });
 
-  const { data: favoriteTeams = [] } = useQuery({
+  const { data: favoriteTeams = [] } = useQuery<FavoriteTeam[]>({
     queryKey: ['/api/user/favorite-teams']
   });
 
-  const { data: recentAlerts = [] } = useQuery({
+  const { data: recentAlerts = [] } = useQuery<RecentAlert[]>({
     queryKey: ['/api/user/recent-alerts']
   });
 
@@ -476,7 +476,7 @@ function RecentAlertsSection({ alerts }: { alerts: RecentAlert[] }) {
                       <div className="flex items-center gap-2 mt-2">
                         <Clock className="w-3 h-3 text-muted-foreground" />
                         <span className="text-xs text-muted-foreground">{alert.time}</span>
-                        <Badge size="sm" className={
+                        <Badge className={
                           alert.urgency === 'high' ? 'bg-red-500 text-white' :
                           alert.urgency === 'medium' ? 'bg-banana text-black' :
                           'bg-vine text-white'

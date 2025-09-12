@@ -1,0 +1,60 @@
+You are a senior front‑end engineer and UI/UX designer. Build a responsive, production‑ready landing page for GuerillaGenics based on the following detailed Figma‑style specification. The page must be mobile‑first, pixel‑perfect, and match the described layout, components, colors, typography, animations, and interactions.
+
+Brand:
+- GuerillaGenics — satirical, character‑driven sports analytics brand.
+- Emoji set: 🦍🍌🏈⚡🌴
+- Palette:
+  Jungle Green: #0F7A4D
+  Banana Yellow: #F8D548
+  Pitch Black: #0B0D0C
+  Slate Smoke: #2A2F34
+  Leaf Tint: #E7F4ED
+  Signal Red: #E24C4B
+- Typography:
+  Display: Space Grotesk (700/600)
+  Body/UI: Inter (400/500/600)
+
+Layout:
+- 12‑column grid, 1200px max width desktop, 8‑column tablet, 4‑column mobile.
+- Sections: Hero, Value Pillars, Weekly Drops (tabbed content hub), DFS Picks Table, Gematria Overlay Explainer, Plans & Subscribe, Social Proof, FAQ, Footer.
+
+Components:
+- GGButton (primary/secondary/ghost) with hover/pressed states.
+- GGCard (pillar, post, plan variants).
+- GGTabBar with animated ink bar.
+- GGTable with sticky header, scrollable body, confidence chips.
+- GGChip for OVER/UNDER and confidence levels.
+- GGModal for sign‑in/subscribe.
+- GGAccordion for FAQ.
+
+Animations:
+- Section fade‑in on scroll (staggered).
+- Hero parallax background and image scale.
+- Button hover scale and shadow deepen.
+- Card hover lift.
+- GAS dial sweep animation with color gradient.
+- Tab ink bar spring slide.
+
+Responsive behavior:
+- Stack hero on mobile, full‑width CTAs.
+- Tabs collapse to pill scroll or dropdown on <640px.
+- DFS table becomes card list on mobile.
+
+Accessibility:
+- WCAG AA contrast.
+- Visible focus outlines.
+- Keyboard navigation for all interactive elements.
+- ARIA roles for tabs, accordions, modals.
+
+Data hooks:
+- Week selector, team filter, player search.
+- API endpoints for weeks, DFS data, matchups, posts, subscribe.
+
+Deliverables:
+- HTML5 semantic structure with ARIA landmarks.
+- CSS variables for colors, spacing, radii, shadows, typography.
+- Modular, reusable components.
+- Fully responsive layouts for desktop, tablet, mobile.
+- Include placeholder data for DFS table, posts, and testimonials.
+
+Build this landing page in HTML, CSS (or Tailwind), and JavaScript (or React) according to the above spec. Ensure all animations and interactions are implemented as described.
