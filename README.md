@@ -10,6 +10,7 @@ A full‑stack DFS + betting analytics engine that builds, evaluates, and tracks
 - **Ledger**: Persistent bankroll tracking with auto‑tagging by script + stack
 - **Visualization**: Bankroll growth curve, ROI by script/stack
 
+
 🖥 **CLI Usage**
 ```bash
 # Evaluate a slip
@@ -30,3 +31,19 @@ gg3 bankroll show
 # Visualize bankroll growth
 gg3 viz bankroll
 ```
+
+## 🧪 Testing
+Run the test suite with:
+```bash
+pytest
+```
+All floating‑point comparisons use `pytest.approx` to avoid precision issues.
+
+## 🏷 Release Hygiene
+Since you’ve just resolved a significant merge and test suite improvement, consider tagging a patch release:
+
+```bash
+git tag v0.1.1 -m "Patch release: merged EV tests, float precision fixes"
+git push origin v0.1.1
+```
+That way, reviewers can see the evolution from v0.1.0 → v0.1.1.
