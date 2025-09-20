@@ -1,0 +1,21 @@
+#!/usr/bin/env node
+
+const { Command } = require('commander');
+const program = new Command();
+
+// Import commands
+const bankrollCommands = require('../cli/commands/bankroll');
+const evalCommand = require('../cli/commands/eval');
+
+program
+  .name('gg3')
+  .description('GuerillaGenics CLI for bankroll management and bet evaluation')
+  .version('1.0.0');
+
+// Add bankroll commands
+program.addCommand(bankrollCommands);
+
+// Add eval command
+program.addCommand(evalCommand);
+
+program.parse();
