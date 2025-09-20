@@ -1,0 +1,74 @@
+You are GitHub Copilot working inside a Replit workspace connected to the repo https://github.com/repo-ranger21/gorillagenics.
+
+GOAL
+Integrate the following modules into a cohesive Python CLI package:
+1. Guerillagenics 3‑Pick Builder (EV %, win probability, role tagging).
+2. Correlation engine (game script priors: shootout, control, neutral).
+3. Bankroll + Parlay Optimizer (Kelly staking with cap, parlay structure recs).
+4. Persistent Bankroll Ledger (JSON storage, auto‑updates, win/loss logging).
+5. Auto‑Tagging (log each slip with game script + stack type).
+6. Query + Analytics (filter ledger by script/stack, compute ROI, win rate).
+7. Visualization (matplotlib or plotly: bankroll growth curve, ROI by script, EV vs. hit rate).
+
+PROJECT STRUCTURE
+gorillagenics/
+  pyproject.toml
+  README.md
+  src/gorillagenics/
+    __init__.py
+    ev.py          # EV + win prob calculations
+    sigma.py       # stat-type sigma rules
+    roles.py       # Anchor/Correlation/Low-Variance tagging
+    corr.py        # correlation priors + pair_corr
+    slip.py        # slip evaluation + grading
+    bankroll.py    # bankroll ledger, Kelly staking, parlay optimizer
+    cli.py         # click-based CLI entrypoint
+    viz.py         # visualization (bankroll curve, ROI by script)
+    templates/
+      table.md.j2  # markdown export
+  tests/
+    test_ev.py
+    test_roles.py
+    test_corr.py
+    test_slip.py
+    test_bankroll.py
+    test_viz.py
+  examples/
+    picks.csv
+  .github/workflows/ci.yml
+
+CLI COMMANDS
+- gg3 eval --csv picks.csv --slip "1,2,3" --script BUF_control --stack "Allen+Cook+Achane"
+  → prints EV table, bankroll stakes, parlay rec, logs to ledger with tags
+- gg3 suggest --csv picks.csv --script shootout --top 10
+  → suggests top 3-pick slips by EV + correlation
+- gg3 bankroll init --start 1000
+  → initializes ledger
+- gg3 bankroll update --slip "1,2,3" --result win
+  → updates bankroll, logs profit/loss
+- gg3 bankroll show
+  → prints current bankroll + history
+- gg3 bankroll query --script BUF_control
+  → filters ledger by script
+- gg3 viz bankroll
+  → generates bankroll growth curve
+- gg3 viz roi --by script
+  → bar chart ROI by script/stack
+
+IMPLEMENTATION NOTES
+- Use pandas + numpy for data handling.
+- Use click for CLI.
+- Use matplotlib or plotly for viz.
+- Ledger stored in JSON at ~/.gorillagenics/ledger.json
+- Bankroll optimizer: Kelly fraction with cap (default 5%).
+- Auto-tagging: every slip logs script + stack string.
+- Tests: pytest with sample CSVs.
+
+ACCEPTANCE
+- Running `gg3 eval` prints per-pick EV, win prob, role, stake, and parlay rec.
+- Ledger updates automatically with results.
+- `gg3 bankroll query` shows ROI by script/stack.
+- `gg3 viz bankroll` plots bankroll growth.
+- CI runs lint + tests.
+
+Now scaffold all files, implement modules with docstrings, and generate a README.md with usage examples.
