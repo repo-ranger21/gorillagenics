@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 """Tests for EV calculation module."""
 
 import pytest
@@ -113,3 +114,25 @@ def test_batch_calculation_with_sample_data(sample_picks_data):
     # Check that all EV calculations are reasonable
     assert all(result['ev_win_probability'] >= 0)
     assert all(result['ev_win_probability'] <= 1)
+=======
+import pytest
+from gorillagenics.ev import calculate_ev
+
+def test_calculate_ev_positive():
+    """Test EV calculation for positive expected value."""
+    result = calculate_ev(pick_odds=2.0, win_probability=0.6, stake=100)
+    assert result['ev'] == pytest.approx(20.0)
+    assert result['ev_percentage'] == pytest.approx(20.0)
+
+def test_calculate_ev_negative():
+    """Test EV calculation for negative expected value."""
+    result = calculate_ev(pick_odds=1.5, win_probability=0.4, stake=100)
+    assert result['ev'] == pytest.approx(-40.0)
+    assert result['ev_percentage'] == pytest.approx(-40.0)
+
+def test_calculate_ev_zero():
+    """Test EV calculation for break-even scenario."""
+    result = calculate_ev(pick_odds=2.0, win_probability=0.5, stake=100)
+    assert result['ev'] == pytest.approx(0.0)
+    assert result['ev_percentage'] == pytest.approx(0.0)
+>>>>>>> 45a7c2d (Fix floating point precision issue in test_calculate_ev_negative using pytest.approx)
