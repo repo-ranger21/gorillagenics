@@ -358,7 +358,6 @@ def bankroll(output: str, csv: Optional[str]):
     try:
         if csv:
             # Use CSV-based function
-            from .viz import plot_bankroll_curve
             filepath = plot_bankroll_curve(csv, output)
             click.echo(f"✓ Bankroll curve from CSV saved to: {filepath}")
         else:
