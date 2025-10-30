@@ -428,7 +428,7 @@ def plot_bankroll_curve(ledger_csv: str, output: str = "bankroll_growth.png") ->
     plt.grid(True, alpha=0.3)
     
     # Format x-axis dates
-    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%m/%d/%Y'))
+    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%m/%d'))
     plt.gca().xaxis.set_major_locator(mdates.DayLocator(interval=max(1, len(df)//10)))
     plt.xticks(rotation=45)
     
