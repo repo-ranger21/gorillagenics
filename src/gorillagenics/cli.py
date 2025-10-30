@@ -383,9 +383,9 @@ def roi(by: str, output: str, csv: Optional[str]):
     try:
         if csv:
             # Use CSV-based function
-            from .viz import plot_roi_by_script
             filepath = plot_roi_by_script(csv, output)
             click.echo(f"✓ ROI chart from CSV saved to: {filepath}")
+            
         else:
             # Use existing BankrollManager-based function
             from .viz import generate_roi_chart
