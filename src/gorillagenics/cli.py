@@ -17,7 +17,7 @@ from .corr import CorrelationEngine
 from .bankroll import BankrollManager, ParLayOptimizer
 from .slip import SlipEvaluator, grade_slip as grade_slip_func
 from .sigma import SigmaAnalyzer
-from .viz import BankrollVisualizer, generate_roi_chart
+from .viz import BankrollVisualizer, generate_roi_chart, plot_bankroll_curve, plot_roi_by_script
 
 
 @click.group()
@@ -352,16 +352,23 @@ def viz():
 
 @viz.command()
 @click.option('--output', default='bankroll_curve.png', help='Output filename')
-def bankroll(output: str):
+@click.option('--csv', help='Path to CSV file with columns [date, bankroll]')
+def bankroll(output: str, csv: Optional[str]):
     """Generate bankroll growth curve visualization."""
     try:
-        from .viz import BankrollVisualizer
-        
-        manager = BankrollManager()
-        visualizer = BankrollVisualizer(manager)
-        
-        filepath = visualizer.plot_bankroll_curve(output)
-        click.echo(f"✓ Bankroll curve saved to: {filepath}")
+        if csv:
+            # Use CSV-based function
+            filepath = plot_bankroll_curve(csv, output)
+            click.echo(f"✓ Bankroll curve from CSV saved to: {filepath}")
+        else:
+            # Use existing BankrollManager-based function
+            from .viz import BankrollVisualizer
+            
+            manager = BankrollManager()
+            visualizer = BankrollVisualizer(manager)
+            
+            filepath = visualizer.plot_bankroll_curve(output)
+            click.echo(f"✓ Bankroll curve saved to: {filepath}")
         
     except Exception as e:
         click.echo(f"Error: {str(e)}")
@@ -370,41 +377,49 @@ def bankroll(output: str):
 @viz.command()
 @click.option('--by', default='script', type=click.Choice(['script', 'stack']), help='Group ROI by script or stack')
 @click.option('--output', default='roi_chart.png', help='Output filename')
-def roi(by: str, output: str):
+@click.option('--csv', help='Path to CSV file with columns [script, stake, return]')
+def roi(by: str, output: str, csv: Optional[str]):
     """Generate ROI chart by script or stack type."""
     try:
-        from .viz import generate_roi_chart
-        
-        manager = BankrollManager()
-        
-        # Group ledger entries
-        if by == 'script':
-            grouped_data = {}
-            for entry in manager.ledger:
-                if entry.game_script and entry.action in ['win', 'loss']:
-                    if entry.game_script not in grouped_data:
-                        grouped_data[entry.game_script] = {'wins': 0, 'losses': 0, 'total_bet': 0, 'total_won': 0}
-                    
-                    if entry.action == 'win':
-                        grouped_data[entry.game_script]['wins'] += 1
-                        grouped_data[entry.game_script]['total_won'] += entry.amount
-                    else:
-                        grouped_data[entry.game_script]['losses'] += 1
-                        # Find corresponding bet
-                        bet_entry = next((e for e in manager.ledger 
-                                        if e.slip_id == entry.slip_id and e.action == 'bet'), None)
-                        if bet_entry:
-                            grouped_data[entry.game_script]['total_bet'] += abs(bet_entry.amount)
-        
-        # Calculate ROI for each group
-        roi_data = {}
-        for group, data in grouped_data.items():
-            if data['total_bet'] > 0:
-                roi = ((data['total_won'] - data['total_bet']) / data['total_bet']) * 100
-                roi_data[group] = roi
-        
-        filepath = generate_roi_chart(roi_data, output, by)
-        click.echo(f"✓ ROI chart saved to: {filepath}")
+        if csv:
+            # Use CSV-based function
+            filepath = plot_roi_by_script(csv, output)
+            click.echo(f"✓ ROI chart from CSV saved to: {filepath}")
+            
+        else:
+            # Use existing BankrollManager-based function
+            from .viz import generate_roi_chart
+            
+            manager = BankrollManager()
+            
+            # Group ledger entries
+            if by == 'script':
+                grouped_data = {}
+                for entry in manager.ledger:
+                    if entry.game_script and entry.action in ['win', 'loss']:
+                        if entry.game_script not in grouped_data:
+                            grouped_data[entry.game_script] = {'wins': 0, 'losses': 0, 'total_bet': 0, 'total_won': 0}
+                        
+                        if entry.action == 'win':
+                            grouped_data[entry.game_script]['wins'] += 1
+                            grouped_data[entry.game_script]['total_won'] += entry.amount
+                        else:
+                            grouped_data[entry.game_script]['losses'] += 1
+                            # Find corresponding bet
+                            bet_entry = next((e for e in manager.ledger 
+                                            if e.slip_id == entry.slip_id and e.action == 'bet'), None)
+                            if bet_entry:
+                                grouped_data[entry.game_script]['total_bet'] += abs(bet_entry.amount)
+            
+            # Calculate ROI for each group
+            roi_data = {}
+            for group, data in grouped_data.items():
+                if data['total_bet'] > 0:
+                    roi = ((data['total_won'] - data['total_bet']) / data['total_bet']) * 100
+                    roi_data[group] = roi
+            
+            filepath = generate_roi_chart(roi_data, output, by)
+            click.echo(f"✓ ROI chart saved to: {filepath}")
         
     except Exception as e:
         click.echo(f"Error: {str(e)}")

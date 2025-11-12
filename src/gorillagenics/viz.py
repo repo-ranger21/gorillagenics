@@ -388,6 +388,153 @@ def generate_ev_vs_hitrate_scatter(
     return str(filepath)
 
 
+def plot_bankroll_curve(ledger_csv: str, output: str = "bankroll_growth.png") -> str:
+    """
+    Plot bankroll growth over time from a CSV ledger.
+    
+    Args:
+        ledger_csv: Path to CSV file with columns [date, bankroll]
+        output: Output filename for the plot
+        
+    Returns:
+        Path to saved visualization file
+    """
+    # Load CSV data
+    try:
+        df = pd.read_csv(ledger_csv)
+    except FileNotFoundError:
+        raise ValueError(f"CSV file not found: {ledger_csv}")
+    except Exception as e:
+        raise ValueError(f"Error reading CSV file: {str(e)}")
+    
+    # Validate required columns
+    if 'date' not in df.columns or 'bankroll' not in df.columns:
+        raise ValueError("CSV must contain 'date' and 'bankroll' columns")
+    
+    # Convert date column to datetime
+    df['date'] = pd.to_datetime(df['date'])
+    
+    # Sort by date
+    df = df.sort_values('date')
+    
+    # Create plot
+    plt.figure(figsize=(12, 8))
+    plt.plot(df['date'], df['bankroll'], linewidth=2, color='#1f77b4', marker='o', markersize=4)
+    
+    # Styling
+    plt.title('Bankroll Growth Over Time', fontsize=16, fontweight='bold')
+    plt.xlabel('Date', fontsize=12)
+    plt.ylabel('Bankroll ($)', fontsize=12)
+    plt.grid(True, alpha=0.3)
+    
+    # Format x-axis dates
+    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%m/%d'))
+    plt.gca().xaxis.set_major_locator(mdates.DayLocator(interval=max(1, len(df)//10)))
+    plt.xticks(rotation=45)
+    
+    # Add summary stats
+    if len(df) > 0:
+        start_balance = df['bankroll'].iloc[0]
+        end_balance = df['bankroll'].iloc[-1]
+        total_return = ((end_balance - start_balance) / start_balance) * 100 if start_balance > 0 else 0
+        
+        plt.text(0.02, 0.98, f'Total Return: {total_return:.1f}%', 
+                transform=plt.gca().transAxes, verticalalignment='top',
+                bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+    
+    plt.tight_layout()
+    
+    # Save file
+    output_dir = Path.cwd() / "visualizations"
+    output_dir.mkdir(exist_ok=True)
+    filepath = output_dir / output
+    plt.savefig(filepath, dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    return str(filepath)
+
+
+def plot_roi_by_script(ledger_csv: str, output: str = "roi_by_script.png") -> str:
+    """
+    Plot ROI grouped by game script from a CSV ledger.
+    
+    Args:
+        ledger_csv: Path to CSV file with columns [script, stake, return]
+        output: Output filename for the plot
+        
+    Returns:
+        Path to saved visualization file
+    """
+    # Load CSV data
+    try:
+        df = pd.read_csv(ledger_csv)
+    except FileNotFoundError:
+        raise ValueError(f"CSV file not found: {ledger_csv}")
+    except Exception as e:
+        raise ValueError(f"Error reading CSV file: {str(e)}")
+    
+    # Validate required columns
+    required_cols = ['script', 'stake', 'return']
+    missing_cols = [col for col in required_cols if col not in df.columns]
+    if missing_cols:
+        raise ValueError(f"CSV must contain columns {required_cols}. Missing: {missing_cols}")
+    
+    # Calculate ROI by script
+    roi_by_script = {}
+    
+    for script in df['script'].unique():
+        script_data = df[df['script'] == script]
+        total_stake = script_data['stake'].sum()
+        total_return = script_data['return'].sum()
+        
+        if total_stake > 0:
+            roi = ((total_return - total_stake) / total_stake) * 100
+            roi_by_script[script] = roi
+    
+    if not roi_by_script:
+        raise ValueError("No valid ROI data found in CSV")
+    
+    # Create bar chart
+    plt.figure(figsize=(12, 8))
+    
+    scripts = list(roi_by_script.keys())
+    roi_values = list(roi_by_script.values())
+    
+    # Color bars based on positive/negative ROI
+    colors = ['green' if roi > 0 else 'red' for roi in roi_values]
+    
+    bars = plt.bar(scripts, roi_values, color=colors, alpha=0.7)
+    
+    # Add value labels on bars
+    for bar, value in zip(bars, roi_values):
+        height = bar.get_height()
+        plt.text(bar.get_x() + bar.get_width()/2., height + (1 if height > 0 else -3),
+                f'{value:.1f}%', ha='center', va='bottom' if height > 0 else 'top',
+                fontweight='bold')
+    
+    # Styling
+    plt.title('ROI by Game Script', fontsize=16, fontweight='bold')
+    plt.xlabel('Game Script', fontsize=12)
+    plt.ylabel('ROI (%)', fontsize=12)
+    plt.grid(True, alpha=0.3, axis='y')
+    plt.axhline(y=0, color='black', linestyle='-', alpha=0.5)
+    
+    # Rotate x-axis labels if needed
+    if len(max(scripts, key=len)) > 8:
+        plt.xticks(rotation=45)
+    
+    plt.tight_layout()
+    
+    # Save file
+    output_dir = Path.cwd() / "visualizations"
+    output_dir.mkdir(exist_ok=True)
+    filepath = output_dir / output
+    plt.savefig(filepath, dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    return str(filepath)
+
+
 def create_correlation_matrix_heatmap(
     correlation_matrix: np.ndarray,
     player_names: List[str],
